@@ -3,8 +3,6 @@ import { Message as VercelChatMessage, StreamingTextResponse } from "ai";
 
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { ChatOpenAI } from "@langchain/openai";
-import { SerpAPI } from "@langchain/community/tools/serpapi";
-import { Calculator } from "@langchain/community/tools/calculator";
 import {
   AIMessage,
   BaseMessage,
@@ -12,8 +10,11 @@ import {
   HumanMessage,
   SystemMessage,
 } from "@langchain/core/messages";
+import { getGmailAccessTokenFunction } from "@/lib/gmail/credentials";
+import { createGmailTools } from "@/lib/gmail/tools";
+import { BrochureRetrieverTool } from "@/lib/tools/brochure";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 const convertVercelMessageToLangChainMessage = (message: VercelChatMessage) => {
   if (message.role === "user") {
@@ -39,18 +40,49 @@ const convertLangChainMessageToVercelMessage = (message: BaseMessage) => {
   }
 };
 
-const AGENT_SYSTEM_TEMPLATE = `You are a talking parrot named Polly. All final responses must be how a talking parrot would respond. Squawk often!`;
+const AGENT_SYSTEM_TEMPLATE = `You are a professional sales assistant AI that helps manage customer inquiries via email.
+
+Your primary responsibilities:
+1. Monitor incoming emails for requests related to brochures, catalogs, product information, or marketing materials
+2. Analyze email content to understand what type of brochure or information the customer is requesting
+3. Retrieve the appropriate brochure from storage using the retrieve_brochure tool
+4. Draft a professional, friendly email response that addresses the customer's request
+5. Include the brochure attachment in your response email
+
+Guidelines:
+- Be professional, courteous, and helpful in all communications
+- Personalize responses based on the customer's specific request
+- If the requested brochure is not available, politely inform the customer and offer alternatives
+- Always verify you have the correct brochure before sending
+- Include a professional email signature
+- For brochure requests, use the workflow: search emails -> read email -> retrieve brochure -> create draft/send email
+
+Available tools:
+- gmail_search: Search for emails (e.g., unread emails mentioning "brochure")
+- gmail_get_message: Get full content of a specific email
+- gmail_get_thread: Get entire email thread for context
+- retrieve_brochure: Fetch brochure files from storage
+- gmail_create_draft: Create an email draft with attachments
+- gmail_send_message: Send an email directly
+
+When asked to "check for brochure requests" or similar, automatically:
+1. Search for unread emails containing keywords like "brochure", "catalog", "information"
+2. Read each email to understand the request
+3. Retrieve the appropriate brochure
+4. Draft/send a professional response with the brochure attached`;
 
 /**
- * This handler initializes and calls an tool caling ReAct agent.
- * See the docs for more information:
+ * This handler initializes and calls a sales assistant ReAct agent with Gmail integration.
+ * The agent monitors emails for brochure requests and drafts responses with attachments.
  *
+ * See the docs for more information:
  * https://langchain-ai.github.io/langgraphjs/tutorials/quickstart/
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const returnIntermediateSteps = body.show_intermediate_steps;
+
     /**
      * We represent intermediate steps as system messages for display purposes,
      * but don't want them in the chat history.
@@ -62,25 +94,46 @@ export async function POST(req: NextRequest) {
       )
       .map(convertVercelMessageToLangChainMessage);
 
-    // Requires process.env.SERPAPI_API_KEY to be set: https://serpapi.com/
-    // You can remove this or use a different tool instead.
-    const tools = [new Calculator(),];
+    // Get Gmail access token function for the authenticated user
+    // This function automatically handles token refresh
+    let getAccessToken;
+    try {
+      getAccessToken = await getGmailAccessTokenFunction();
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: "Gmail not connected. Please connect your Gmail account to use the sales assistant.",
+          details: error instanceof Error ? error.message : String(error)
+        },
+        { status: 401 }
+      );
+    }
+
+    // Initialize Gmail tools with user's OAuth credentials using the factory function
+    // The accessToken function allows automatic token refresh when needed
+    const gmailTools = createGmailTools(getAccessToken);
+    const tools = [
+      gmailTools.search,
+      gmailTools.getMessage,
+      gmailTools.getThread,
+      gmailTools.createDraft,
+      gmailTools.sendMessage,
+      new BrochureRetrieverTool(),
+    ];
+
     const chat = new ChatOpenAI({
       model: "gpt-4o-mini",
       temperature: 0,
     });
 
     /**
-     * Use a prebuilt LangGraph agent.
+     * Use a prebuilt LangGraph ReAct agent with Gmail tools.
      */
     const agent = createReactAgent({
       llm: chat,
       tools,
       /**
-       * Modify the stock prompt in the prebuilt agent. See docs
-       * for how to customize your agent:
-       *
-       * https://langchain-ai.github.io/langgraphjs/tutorials/quickstart/
+       * Modify the stock prompt to be a sales assistant
        */
       messageModifier: new SystemMessage(AGENT_SYSTEM_TEMPLATE),
     });
