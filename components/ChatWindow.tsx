@@ -200,10 +200,29 @@ export function ChatWindow(props: {
       }
     },
     streamMode: "text",
-    onError: (e) =>
-      toast.error(`Error while processing your request`, {
-        description: e.message,
-      }),
+    onError: (e) => {
+      console.error('[ChatWindow] Error during chat:', e);
+
+      // Parse error message for better user feedback
+      let errorTitle = 'Error while processing your request';
+      let errorDescription = e.message;
+
+      if (e.message?.includes('Gmail not connected')) {
+        errorTitle = 'Gmail Not Connected';
+        errorDescription = 'Please connect your Google account to use the sales assistant with Gmail.';
+      } else if (e.message?.includes('OAuth') || e.message?.includes('authentication')) {
+        errorTitle = 'Authentication Error';
+        errorDescription = 'There was a problem with your Google account. Please try reconnecting.';
+      } else if (e.message?.includes('tool')) {
+        errorTitle = 'Tool Execution Error';
+        errorDescription = 'The assistant encountered an error while performing an action. Please try again.';
+      }
+
+      toast.error(errorTitle, {
+        description: errorDescription,
+        duration: 5000,
+      });
+    },
   });
 
   async function sendMessage(e: FormEvent<HTMLFormElement>) {
@@ -237,8 +256,30 @@ export function ChatWindow(props: {
     setIntermediateStepsLoading(false);
 
     if (!response.ok) {
-      toast.error(`Error while processing your request`, {
-        description: json.error,
+      console.error('[ChatWindow] Request failed:', {
+        status: response.status,
+        error: json.error,
+        details: json.details
+      });
+
+      // Parse error for better user feedback
+      let errorTitle = 'Error while processing your request';
+      let errorDescription = json.details || json.error || 'An unknown error occurred.';
+
+      if (json.error?.includes('Gmail not connected')) {
+        errorTitle = 'Gmail Not Connected';
+        errorDescription = 'Please connect your Google account in settings to use the sales assistant.';
+      } else if (json.error?.includes('OAuth') || json.error?.includes('authentication')) {
+        errorTitle = 'Authentication Error';
+        errorDescription = json.details || 'Please reconnect your Google account.';
+      } else if (json.error?.includes('tool')) {
+        errorTitle = 'Tool Execution Failed';
+        errorDescription = json.details || 'The assistant encountered an error. Check the server logs for details.';
+      }
+
+      toast.error(errorTitle, {
+        description: errorDescription,
+        duration: 5000,
       });
       return;
     }

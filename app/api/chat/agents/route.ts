@@ -79,9 +79,16 @@ When asked to "check for brochure requests" or similar, automatically:
  * https://langchain-ai.github.io/langgraphjs/tutorials/quickstart/
  */
 export async function POST(req: NextRequest) {
+  const requestId = Math.random().toString(36).substring(7);
+  console.log(`[Agent Route ${requestId}] ===== New chat request =====`);
+
   try {
     const body = await req.json();
     const returnIntermediateSteps = body.show_intermediate_steps;
+    console.log(`[Agent Route ${requestId}] Request parameters:`, {
+      messageCount: body.messages?.length || 0,
+      returnIntermediateSteps
+    });
 
     /**
      * We represent intermediate steps as system messages for display purposes,
@@ -94,12 +101,23 @@ export async function POST(req: NextRequest) {
       )
       .map(convertVercelMessageToLangChainMessage);
 
+    console.log(`[Agent Route ${requestId}] Filtered messages:`, {
+      count: messages.length,
+      lastMessage: messages[messages.length - 1]?.content?.toString().substring(0, 100)
+    });
+
     // Get Gmail access token function for the authenticated user
     // This function automatically handles token refresh
+    console.log(`[Agent Route ${requestId}] Initializing Gmail access token function...`);
     let getAccessToken;
     try {
       getAccessToken = await getGmailAccessTokenFunction();
+      console.log(`[Agent Route ${requestId}] Gmail access token function created successfully`);
     } catch (error) {
+      console.error(`[Agent Route ${requestId}] Failed to create Gmail access token function:`, {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
       return NextResponse.json(
         {
           error: "Gmail not connected. Please connect your Gmail account to use the sales assistant.",
@@ -111,7 +129,19 @@ export async function POST(req: NextRequest) {
 
     // Initialize Gmail tools with user's OAuth credentials using the factory function
     // The accessToken function allows automatic token refresh when needed
-    const gmailTools = createGmailTools(getAccessToken);
+    console.log(`[Agent Route ${requestId}] Creating Gmail tools...`);
+    let gmailTools;
+    try {
+      gmailTools = createGmailTools(getAccessToken);
+      console.log(`[Agent Route ${requestId}] Gmail tools created successfully`);
+    } catch (error) {
+      console.error(`[Agent Route ${requestId}] Failed to create Gmail tools:`, {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      throw new Error(`Failed to initialize Gmail tools: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
     const tools = [
       gmailTools.search,
       gmailTools.getMessage,
@@ -120,11 +150,17 @@ export async function POST(req: NextRequest) {
       gmailTools.sendMessage,
       new BrochureRetrieverTool(),
     ];
+    console.log(`[Agent Route ${requestId}] All tools assembled:`, {
+      toolCount: tools.length,
+      toolNames: tools.map(t => t.name)
+    });
 
     const chat = new ChatOpenAI({
       model: "gpt-4o-mini",
       temperature: 0,
     });
+
+    console.log(`[Agent Route ${requestId}] Creating ReAct agent with LangGraph...`);
 
     /**
      * Use a prebuilt LangGraph ReAct agent with Gmail tools.
@@ -137,6 +173,8 @@ export async function POST(req: NextRequest) {
        */
       messageModifier: new SystemMessage(AGENT_SYSTEM_TEMPLATE),
     });
+
+    console.log(`[Agent Route ${requestId}] Agent created, starting execution...`);
 
     if (!returnIntermediateSteps) {
       /**
@@ -151,6 +189,7 @@ export async function POST(req: NextRequest) {
        *
        * See: https://langchain-ai.github.io/langgraphjs/how-tos/stream-tokens/
        */
+      console.log(`[Agent Route ${requestId}] Streaming mode enabled`);
       const eventStream = agent.streamEvents(
         { messages },
         { version: "v2" },
@@ -159,7 +198,28 @@ export async function POST(req: NextRequest) {
       const textEncoder = new TextEncoder();
       const transformStream = new ReadableStream({
         async start(controller) {
+          let toolCallCount = 0;
           for await (const { event, data } of eventStream) {
+            // Log tool calls
+            if (event === "on_tool_start") {
+              toolCallCount++;
+              console.log(`[Agent Route ${requestId}] Tool call #${toolCallCount} started:`, {
+                tool: data.name,
+                input: typeof data.input === 'string' ? data.input.substring(0, 200) : JSON.stringify(data.input).substring(0, 200)
+              });
+            }
+            if (event === "on_tool_end") {
+              console.log(`[Agent Route ${requestId}] Tool call completed:`, {
+                tool: data.name,
+                outputPreview: typeof data.output === 'string' ? data.output.substring(0, 200) : JSON.stringify(data.output).substring(0, 200)
+              });
+            }
+            if (event === "on_tool_error") {
+              console.error(`[Agent Route ${requestId}] Tool call failed:`, {
+                tool: data.name,
+                error: data.error instanceof Error ? data.error.message : String(data.error)
+              });
+            }
             if (event === "on_chat_model_stream") {
               // Intermediate chat model generations will contain tool calls and no content
               if (!!data.chunk.content) {
@@ -167,6 +227,7 @@ export async function POST(req: NextRequest) {
               }
             }
           }
+          console.log(`[Agent Route ${requestId}] Stream completed. Total tool calls: ${toolCallCount}`);
           controller.close();
         },
       });
@@ -178,7 +239,17 @@ export async function POST(req: NextRequest) {
        * they are generated as JSON objects, so streaming and displaying them with
        * the AI SDK is more complicated.
        */
+      console.log(`[Agent Route ${requestId}] Non-streaming mode, invoking agent...`);
+      const startTime = Date.now();
       const result = await agent.invoke({ messages });
+      const duration = Date.now() - startTime;
+
+      console.log(`[Agent Route ${requestId}] Agent execution completed (${duration}ms):`, {
+        messageCount: result.messages.length,
+        hasToolCalls: result.messages.some((m: BaseMessage) =>
+          (m as AIMessage).tool_calls && (m as AIMessage).tool_calls?.length > 0
+        )
+      });
 
       return NextResponse.json(
         {
@@ -188,6 +259,32 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: e.status ?? 500 });
+    console.error('[Agent Route] Fatal error:', {
+      error: e.message,
+      status: e.status ?? 500,
+      stack: e.stack
+    });
+
+    // Provide more detailed error messages to users
+    let userMessage = e.message;
+    let errorDetails = '';
+
+    if (e.message?.includes('Gmail')) {
+      userMessage = 'Gmail tool execution failed. Please check your Gmail connection and try again.';
+      errorDetails = e.message;
+    } else if (e.message?.includes('OAuth') || e.message?.includes('token')) {
+      userMessage = 'Authentication error. Please reconnect your Google account.';
+      errorDetails = e.message;
+    } else if (e.message?.includes('Tool')) {
+      userMessage = 'A tool execution error occurred. The sales assistant encountered a problem while performing an action.';
+      errorDetails = e.message;
+    }
+
+    return NextResponse.json({
+      error: userMessage,
+      details: errorDetails || e.message
+    }, {
+      status: e.status ?? 500
+    });
   }
 }
