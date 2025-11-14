@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { GithubIcon } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
-import { ClerkProvider } from "@clerk/nextjs";
+import { ClerkProvider, UserButton } from "@clerk/nextjs";
 
 const publicSans = Public_Sans({ subsets: ["latin"] });
 
@@ -90,7 +90,7 @@ export default function RootLayout({
                   </nav>
                 </div>
 
-                <div className="flex justify-center">
+                <div className="flex items-center justify-center gap-2">
                   <Button asChild variant="outline" size="default">
                     <a
                       href="https://github.com/langchain-ai/langchain-nextjs-template"
@@ -100,6 +100,7 @@ export default function RootLayout({
                       <span>Open in GitHub</span>
                     </a>
                   </Button>
+                  <UserButton afterSignOutUrl="/" />
                 </div>
               </div>
               <div className="bg-background mx-4 relative grid rounded-t-2xl border border-input border-b-0">
