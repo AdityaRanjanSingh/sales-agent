@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     // Requires process.env.SERPAPI_API_KEY to be set: https://serpapi.com/
     // You can remove this or use a different tool instead.
-    const tools = [new Calculator(), new SerpAPI()];
+    const tools = [new Calculator(),];
     const chat = new ChatOpenAI({
       model: "gpt-4o-mini",
       temperature: 0,
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
        *
        * See: https://langchain-ai.github.io/langgraphjs/how-tos/stream-tokens/
        */
-      const eventStream = await agent.streamEvents(
+      const eventStream = agent.streamEvents(
         { messages },
         { version: "v2" },
       );
