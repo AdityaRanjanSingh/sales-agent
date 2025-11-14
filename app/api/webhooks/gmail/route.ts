@@ -61,12 +61,6 @@ export async function POST(req: NextRequest) {
 
     const notificationData: GmailNotificationData = JSON.parse(decodedData);
 
-    console.log("Gmail notification received:", {
-      emailAddress: notificationData.emailAddress,
-      historyId: notificationData.historyId,
-      messageId: notification.message.messageId,
-    });
-
     // TODO: Implement your email processing logic here
     // Options:
     // 1. Trigger the sales assistant agent to check for new brochure requests

@@ -17,10 +17,10 @@ export function GmailConnectionStatus() {
   useEffect(() => {
     if (isLoaded && user) {
       // Check if user has a verified Google account
-      // Note: Clerk may use either "google" or "oauth_google" as the provider name
+      // Note: TypeScript types say "google" but Clerk actually returns "oauth_google" at runtime
       const googleAccount = user.externalAccounts.find(
-        (account) => (account.provider === "google" || account.provider === "oauth_google") &&
-                     account.verification?.status === "verified"
+        (account) => (account.provider === "google" || (account.provider as string) === "oauth_google") &&
+          account.verification?.status === "verified"
       );
       setIsGmailConnected(!!googleAccount);
     }

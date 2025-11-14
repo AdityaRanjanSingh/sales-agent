@@ -11,14 +11,10 @@ import {
  * The googleapis package must be installed for these tools to work
  */
 export function createGmailTools(getAccessToken: () => Promise<string>) {
-  console.log('[Gmail Tools] Creating Gmail tools with access token function');
-
-  // Wrap the access token function to add logging
+  // Wrap the access token function to add error handling
   const wrappedGetAccessToken = async () => {
-    console.log('[Gmail Tools] Access token requested by LangChain tool');
     try {
       const token = await getAccessToken();
-      console.log('[Gmail Tools] Access token successfully provided to tool');
       return token;
     } catch (error) {
       console.error('[Gmail Tools] Failed to get access token:', {
@@ -38,10 +34,6 @@ export function createGmailTools(getAccessToken: () => Promise<string>) {
       createDraft: new GmailCreateDraft({ credentials }),
       sendMessage: new GmailSendMessage({ credentials }),
     };
-
-    console.log('[Gmail Tools] Successfully created all 5 Gmail tools:', {
-      tools: Object.keys(tools)
-    });
 
     return tools;
   } catch (error) {
