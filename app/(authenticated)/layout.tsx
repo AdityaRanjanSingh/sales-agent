@@ -34,26 +34,6 @@ export default function AuthenticatedLayout({
   return (
     <div className="bg-secondary grid min-h-[100dvh] grid-rows-[auto,1fr]">
       <div className="grid grid-cols-[1fr,auto] gap-2 p-4">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center">
-          <a
-            href="https://js.langchain.com"
-            rel="noopener noreferrer"
-            target="_blank"
-            className="flex items-center gap-2"
-          >
-            <Logo />
-          </a>
-          <nav className="flex flex-col gap-1 md:flex-row">
-            <ActiveLink href="/">🏴‍☠️ Chat</ActiveLink>
-            <ActiveLink href="/structured_output">🧱 Structured Output</ActiveLink>
-            <ActiveLink href="/agents">🦜 Agents</ActiveLink>
-            <ActiveLink href="/retrieval">🐶 Retrieval</ActiveLink>
-            <ActiveLink href="/retrieval_agents">🤖 Retrieval Agents</ActiveLink>
-            <ActiveLink href="/ai_sdk">🌊 React Server Components</ActiveLink>
-            <ActiveLink href="/langgraph">🕸️ LangGraph</ActiveLink>
-          </nav>
-        </div>
-
         <div className="flex items-center justify-center gap-2">
           <Button asChild variant="outline" size="default">
             <a
@@ -64,7 +44,7 @@ export default function AuthenticatedLayout({
               <span>Open in GitHub</span>
             </a>
           </Button>
-          <UserButton afterSignOutUrl="/" />
+          <UserButton />
         </div>
       </div>
       <div className="bg-background mx-4 relative grid rounded-t-2xl border border-input border-b-0">

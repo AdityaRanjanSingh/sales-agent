@@ -2,15 +2,13 @@ import { auth } from "@clerk/nextjs/server";
 import { clerkClient } from "@clerk/nextjs/server";
 
 /**
- * Gets an access token function that can be used by LangChain Gmail tools
- * Retrieves the Google OAuth token directly from Clerk's OAuth provider
+ * Gets an access token function for a specific user ID
+ * This is used by webhooks where we don't have the auth() context
  */
-export async function getGmailAccessTokenFunction(): Promise<() => Promise<string>> {
-  const { userId } = await auth();
-
+export async function getGmailAccessTokenFunctionForUser(userId: string): Promise<() => Promise<string>> {
   if (!userId) {
-    console.error('[Gmail Credentials] Error: User not authenticated');
-    throw new Error("User not authenticated");
+    console.error('[Gmail Credentials] Error: User ID not provided');
+    throw new Error("User ID not provided");
   }
 
   let callCount = 0;
@@ -89,5 +87,20 @@ export async function getGmailAccessTokenFunction(): Promise<() => Promise<strin
       throw error;
     }
   };
+}
+
+/**
+ * Gets an access token function that can be used by LangChain Gmail tools
+ * Retrieves the Google OAuth token directly from Clerk's OAuth provider
+ */
+export async function getGmailAccessTokenFunction(): Promise<() => Promise<string>> {
+  const { userId } = await auth();
+
+  if (!userId) {
+    console.error('[Gmail Credentials] Error: User not authenticated');
+    throw new Error("User not authenticated");
+  }
+
+  return getGmailAccessTokenFunctionForUser(userId);
 }
 
