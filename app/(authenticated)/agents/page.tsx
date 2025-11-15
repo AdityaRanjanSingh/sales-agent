@@ -1,5 +1,6 @@
 import { ChatWindow } from "@/components/ChatWindow";
 import { GuideInfoBox } from "@/components/guide/GuideInfoBox";
+import { GmailConnectionStatus } from "@/components/GmailConnectionStatus";
 
 export default function AgentsPage() {
   const InfoCard = (
@@ -57,6 +58,10 @@ export default function AgentsPage() {
           </span>
         </li>
       </ul>
+
+      <div className="mt-4">
+        <GmailConnectionStatus />
+      </div>
     </GuideInfoBox>
   );
 

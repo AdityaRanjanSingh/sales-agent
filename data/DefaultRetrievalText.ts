@@ -119,8 +119,6 @@ Retrieve [relevant splits](https://www.pinecone.io/learn/what-is-similarity-sear
 \`\`\`typescript
 const relevantDocs = await vectorStore.similaritySearch("What is task decomposition?");
 
-console.log(relevantDocs.length);
-
 // 4
 \`\`\`
 
@@ -157,7 +155,6 @@ const chain = RetrievalQAChain.fromLLM(model, vectorstore.asRetriever());
 const response = await chain.call({
   query: "What is task decomposition?"
 });
-console.log(response);
 
 /*
   {
@@ -202,8 +199,6 @@ const response = await chain.call({
   query: "What is task decomposition?"
 });
 
-console.log(response);
-
 /*
   {
     text: 'Task decomposition is the process of breaking down a large task into smaller, more manageable subgoals. This allows for efficient handling of complex tasks and aids in planning and organizing the steps needed to achieve the overall goal. Thanks for asking!'
@@ -230,8 +225,6 @@ const chain = RetrievalQAChain.fromLLM(model, vectorstore.asRetriever(), {
 const response = await chain.call({
   query: "What is task decomposition?"
 });
-
-console.log(response.sourceDocuments[0]);
 
 /*
 Document {
@@ -263,7 +256,6 @@ const stuffResult = await stuffChain.call({
   question: "What is task decomposition
 });
 
-console.log(stuffResult);
 /*
 {
   text: 'Task decomposition is the process of breaking down a large task into smaller, more manageable subgoals or steps. This allows for efficient handling of complex tasks by focusing on one subgoal at a time. Task decomposition can be done through various methods such as using simple prompting, task-specific instructions, or human inputs.'
@@ -301,7 +293,6 @@ const chain = ConversationalRetrievalQAChain.fromLLM(model, vectorstore.asRetrie
 const result = await chain.call({
   question: "What are some of the main ideas in self-reflection?"
 });
-console.log(result);
 
 /*
 {
@@ -330,7 +321,6 @@ The \`Memory buffer\` has context to resolve \`"it"\` ("self-reflection") in the
 const followupResult = await chain.call({
   question: "How does the Reflexion paper handle it?"
 });
-console.log(followupResult);
 
 /*
 {
@@ -417,8 +407,6 @@ const result = await executor.call({
   input: "Hi, I'm Bob!"
 });
 
-console.log(result);
-
 /*
   {
     output: 'Hello Bob! How can I assist you today?',
@@ -430,8 +418,6 @@ const result2 = await executor.call({
   input: "What's my name?"
 });
 
-console.log(result2);
-
 /*
   { output: 'Your name is Bob.', intermediateSteps: [] }
 */
@@ -439,8 +425,6 @@ console.log(result2);
 const result3 = await executor.call({
   input: "What did the president say about Ketanji Brown Jackson in the most recent state of the union?"
 });
-
-console.log(result3);
 
 /*
   {
@@ -454,8 +438,6 @@ console.log(result3);
 const result4 = await executor.call({
   input: "How long ago did he nominate her?"
 });
-
-console.log(result4);
 
 /*
   {
