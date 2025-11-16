@@ -15,9 +15,14 @@ import { createDriveReadDocumentAction } from "./drive/read-document";
  * @param getDriveAccessToken Function that returns the user's Drive OAuth token
  * @returns Array of CopilotKit actions
  */
+interface ActionOptions {
+  customInstructions?: string;
+}
+
 export function createAllActions(
   getGmailAccessToken: () => Promise<string>,
-  getDriveAccessToken: () => Promise<string>
+  getDriveAccessToken: () => Promise<string>,
+  options?: ActionOptions,
 ): Action<any>[] {
   return [
     createGmailSearchAction(getGmailAccessToken),
@@ -26,7 +31,7 @@ export function createAllActions(
     createGmailCreateDraftAction(getGmailAccessToken),
     createGmailSendMessageAction(getGmailAccessToken),
     createRetrieveBrochureAction(),
-    createPrepareReplyAction(getGmailAccessToken),
+    createPrepareReplyAction(getGmailAccessToken, options),
     createConfirmReplyAction(getGmailAccessToken),
     createDriveReadDocumentAction(getDriveAccessToken),
   ];

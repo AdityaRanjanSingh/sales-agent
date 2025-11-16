@@ -13,6 +13,8 @@ This is a Next.js AI sales assistant application that automates email brochure r
 - CopilotKit for chat UI
 - Clerk for authentication & OAuth
 - Google Gmail API via OAuth
+- NeonDB (PostgreSQL) for user preferences
+- Prisma ORM
 - Supabase for storage (brochures bucket)
 - OpenAI GPT-4o-mini for LLM
 - Tailwind CSS + shadcn/ui components
@@ -41,6 +43,11 @@ yarn format
 
 # Analyze bundle size
 ANALYZE=true yarn build
+
+# Database migrations (Prisma)
+yarn prisma migrate dev    # Create and run new migrations
+yarn prisma generate       # Generate Prisma client
+yarn prisma studio        # Open database browser
 ```
 
 ## Architecture
@@ -94,9 +101,34 @@ Both agents have identical tools and system prompts defined in their respective 
 - Returns public URLs and metadata for email attachments
 - Lists available brochures if requested file not found
 
+### User Preferences & Custom Instructions
+**Database** (`prisma/schema.prisma`):
+- `UserPreferences` model stores user-specific settings
+- Fields: `userId`, `customInstructions`, timestamps
+- NeonDB PostgreSQL database via Prisma ORM
+
+**API Routes** (`app/api/user-preferences/route.ts`):
+- GET: Fetch current user's custom instructions
+- POST: Save/update custom instructions
+- Authenticated via Clerk `auth()`
+
+**UI Integration** (`app/(authenticated)/page.tsx`):
+- `SettingsDrawer` component provides settings UI (gear icon, slide-in drawer)
+- Custom instructions fetched on page load
+- `useCopilotReadable` hook injects instructions into agent context
+- Instructions only apply to CopilotKit chat, not webhook email processing
+
+**Flow:**
+1. User clicks settings icon → drawer opens
+2. User enters custom instructions (e.g., "Always be concise")
+3. Saves → stored in NeonDB via API
+4. Instructions immediately available to agent via `useCopilotReadable`
+5. Agent incorporates instructions in all chat responses
+
 ### UI Components
 - `components/ChatWindow.tsx`: Main chat interface (legacy, not currently used)
 - `components/GmailConnectionStatus.tsx`: Shows Gmail connection status
+- `components/SettingsDrawer.tsx`: Settings drawer for custom instructions
 - `app/(authenticated)/page.tsx`: Main app page using CopilotKit chat
 - `components/ui/*`: shadcn/ui components
 
@@ -109,6 +141,7 @@ Required in `.env.local`:
 - `OPENAI_API_KEY`: OpenAI API key
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Clerk public key
 - `CLERK_SECRET_KEY`: Clerk secret key
+- `DATABASE_URL`: NeonDB PostgreSQL connection string
 - `SUPABASE_URL`: Supabase project URL
 - `SUPABASE_PRIVATE_KEY`: Supabase service role key
 - `GMAIL_WEBHOOK_TOKEN`: Secret token for webhook security
@@ -139,6 +172,28 @@ The sales assistant prompt is duplicated in:
 
 If updating the prompt, update all three locations.
 
+### Prisma & Database
+Database client is initialized in `lib/prisma.ts` as a singleton:
+```typescript
+import { prisma } from "@/lib/prisma";
+
+// Query user preferences
+const preferences = await prisma.userPreferences.findUnique({
+  where: { userId },
+});
+
+// Upsert (create or update)
+await prisma.userPreferences.upsert({
+  where: { userId },
+  update: { customInstructions },
+  create: { userId, customInstructions },
+});
+```
+
+After schema changes, run:
+1. `yarn prisma generate` - Regenerate client
+2. `yarn prisma migrate dev` - Create and run migration
+
 ### Error Handling
 - Gmail tools and OAuth token retrieval include comprehensive error logging
 - Webhook returns 200 even on errors to prevent Google retries
@@ -153,3 +208,8 @@ If updating the prompt, update all three locations.
 - Gmail push notifications require Google Cloud Pub/Sub setup (see webhook comments)
 - Brochures must be manually uploaded to Supabase `brochures` bucket
 - Clerk must be configured with Google OAuth provider and appropriate scopes (Gmail API access)
+- **Database Setup**: Before running the app, you must:
+  1. Create a NeonDB PostgreSQL database
+  2. Add `DATABASE_URL` to `.env.local`
+  3. Run `yarn prisma migrate dev` to create tables
+  4. Run `yarn prisma generate` to generate the Prisma client

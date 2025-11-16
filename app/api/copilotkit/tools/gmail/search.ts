@@ -6,7 +6,7 @@ import { Action } from "@copilotkit/shared";
  * @returns CopilotKit action for searching emails
  */
 export function createGmailSearchAction(
-  getAccessToken: () => Promise<string>
+  getAccessToken: () => Promise<string>,
 ): Action<any> {
   return {
     name: "gmail_search",

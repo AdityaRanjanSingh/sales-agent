@@ -4,10 +4,11 @@ import {
   copilotRuntimeNextJSAppRouterEndpoint,
 } from "@copilotkit/runtime";
 import { NextRequest } from "next/server";
-import { getGmailAccessTokenFunction } from "@/lib/gmail/credentials";
-import { getDriveAccessTokenFunction } from "@/lib/drive/credentials";
+import { auth } from "@clerk/nextjs/server";
+import { getGmailAccessTokenFunctionForUser } from "@/lib/gmail/credentials";
+import { getDriveAccessTokenFunctionForUser } from "@/lib/drive/credentials";
+import { getUserCustomInstructions } from "@/lib/preferences";
 import { createAllActions } from "./tools";
-import { SALES_ASSISTANT_INSTRUCTIONS } from "./config/instructions";
 
 export const runtime = "nodejs";
 
@@ -17,10 +18,19 @@ export const runtime = "nodejs";
  */
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     // Get Gmail access token function for the authenticated user
     let getGmailAccessToken: () => Promise<string>;
     try {
-      getGmailAccessToken = await getGmailAccessTokenFunction();
+      getGmailAccessToken = await getGmailAccessTokenFunctionForUser(userId);
     } catch (error) {
       console.error("[CopilotKit] Failed to get Gmail access token:", {
         error: error instanceof Error ? error.message : String(error),
@@ -31,14 +41,14 @@ export async function POST(req: NextRequest) {
           error:
             "Gmail not connected. Please connect your Gmail account to use the sales assistant.",
         }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
+        { status: 401, headers: { "Content-Type": "application/json" } },
       );
     }
 
     // Get Drive access token function for the authenticated user
     let getDriveAccessToken: () => Promise<string>;
     try {
-      getDriveAccessToken = await getDriveAccessTokenFunction();
+      getDriveAccessToken = await getDriveAccessTokenFunctionForUser(userId);
     } catch (error) {
       console.error("[CopilotKit] Failed to get Drive access token:", {
         error: error instanceof Error ? error.message : String(error),
@@ -47,13 +57,18 @@ export async function POST(req: NextRequest) {
       // Set to a function that throws when called
       getDriveAccessToken = async () => {
         throw new Error(
-          "Google Drive not connected. Please connect your Google account to use Drive features."
+          "Google Drive not connected. Please connect your Google account to use Drive features.",
         );
       };
     }
 
+    // Load the user's custom instructions so draft generation can respect them
+    const customInstructions = await getUserCustomInstructions(userId);
+
     // Create all CopilotKit actions
-    const actions = createAllActions(getGmailAccessToken, getDriveAccessToken);
+    const actions = createAllActions(getGmailAccessToken, getDriveAccessToken, {
+      customInstructions,
+    });
 
     // Create CopilotKit runtime with OpenAI adapter
     const copilotKit = new CopilotRuntime({
@@ -82,7 +97,7 @@ export async function POST(req: NextRequest) {
         error: "Internal server error",
         details: error instanceof Error ? error.message : String(error),
       }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 }

@@ -6,7 +6,7 @@ import { Action } from "@copilotkit/shared";
  * @returns CopilotKit action for retrieving an email thread
  */
 export function createGmailGetThreadAction(
-  getAccessToken: () => Promise<string>
+  getAccessToken: () => Promise<string>,
 ): Action<any> {
   return {
     name: "gmail_get_thread",

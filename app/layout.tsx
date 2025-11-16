@@ -9,11 +9,7 @@ import "@copilotkit/react-ui/styles.css";
 
 const publicSans = Public_Sans({ subsets: ["latin"] });
 
-export default function RootLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <ClerkProvider>
       <html lang="en">

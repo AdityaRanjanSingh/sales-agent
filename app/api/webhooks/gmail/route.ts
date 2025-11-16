@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { processNewEmails, getUserIdFromEmail } from "@/lib/gmail/process-emails";
+import {
+  processNewEmails,
+  getUserIdFromEmail,
+} from "@/lib/gmail/process-emails";
 import { getGmailAccessTokenFunctionForUser } from "@/lib/gmail/credentials";
 
 /**
@@ -49,15 +52,16 @@ export async function POST(req: NextRequest) {
     if (webhookToken) {
       const providedToken = authHeader?.replace("Bearer ", "");
       if (providedToken !== webhookToken) {
-        console.warn(`[Gmail Webhook ${requestId}] Unauthorized request - invalid token`);
-        return NextResponse.json(
-          { error: "Unauthorized" },
-          { status: 401 }
+        console.warn(
+          `[Gmail Webhook ${requestId}] Unauthorized request - invalid token`,
         );
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       console.log(`[Gmail Webhook ${requestId}] Token verification passed`);
     } else {
-      console.log(`[Gmail Webhook ${requestId}] No webhook token configured - skipping auth check`);
+      console.log(
+        `[Gmail Webhook ${requestId}] No webhook token configured - skipping auth check`,
+      );
     }
 
     // Parse the push notification
@@ -68,7 +72,7 @@ export async function POST(req: NextRequest) {
     try {
       const decodedData = Buffer.from(
         notification.message.data,
-        "base64"
+        "base64",
       ).toString("utf-8");
 
       notificationData = JSON.parse(decodedData);
@@ -79,10 +83,13 @@ export async function POST(req: NextRequest) {
         publishTime: notification.message.publishTime,
       });
     } catch (error) {
-      console.error(`[Gmail Webhook ${requestId}] Failed to decode notification data:`, {
-        error: error instanceof Error ? error.message : String(error),
-        rawData: notification.message.data,
-      });
+      console.error(
+        `[Gmail Webhook ${requestId}] Failed to decode notification data:`,
+        {
+          error: error instanceof Error ? error.message : String(error),
+          rawData: notification.message.data,
+        },
+      );
       throw new Error("Failed to decode notification data");
     }
 
@@ -90,7 +97,9 @@ export async function POST(req: NextRequest) {
     const userId = await getUserIdFromEmail(notificationData.emailAddress);
 
     if (!userId) {
-      console.warn(`[Gmail Webhook ${requestId}] No user found for email ${notificationData.emailAddress}`);
+      console.warn(
+        `[Gmail Webhook ${requestId}] No user found for email ${notificationData.emailAddress}`,
+      );
       return NextResponse.json(
         {
           success: false,
@@ -98,23 +107,30 @@ export async function POST(req: NextRequest) {
           emailAddress: notificationData.emailAddress,
           requestId,
         },
-        { status: 200 } // Return 200 to prevent Google retries
+        { status: 200 }, // Return 200 to prevent Google retries
       );
     }
 
-    console.log(`[Gmail Webhook ${requestId}] Found user ${userId} for email ${notificationData.emailAddress}`);
+    console.log(
+      `[Gmail Webhook ${requestId}] Found user ${userId} for email ${notificationData.emailAddress}`,
+    );
 
     // Get the Gmail access token function for this specific user
     // This works in webhook context without requiring auth() session
     let getAccessToken;
     try {
       getAccessToken = await getGmailAccessTokenFunctionForUser(userId);
-      console.log(`[Gmail Webhook ${requestId}] Successfully obtained access token function for user ${userId}`);
+      console.log(
+        `[Gmail Webhook ${requestId}] Successfully obtained access token function for user ${userId}`,
+      );
     } catch (error) {
-      console.error(`[Gmail Webhook ${requestId}] Failed to get access token function:`, {
-        error: error instanceof Error ? error.message : String(error),
-        userId,
-      });
+      console.error(
+        `[Gmail Webhook ${requestId}] Failed to get access token function:`,
+        {
+          error: error instanceof Error ? error.message : String(error),
+          userId,
+        },
+      );
       return NextResponse.json(
         {
           success: false,
@@ -122,13 +138,15 @@ export async function POST(req: NextRequest) {
           emailAddress: notificationData.emailAddress,
           requestId,
         },
-        { status: 200 } // Return 200 to prevent Google retries
+        { status: 200 }, // Return 200 to prevent Google retries
       );
     }
 
     // Process the emails in the background
     // Using Promise without await to respond quickly to Google
-    console.log(`[Gmail Webhook ${requestId}] Starting background email processing for ${notificationData.emailAddress}`);
+    console.log(
+      `[Gmail Webhook ${requestId}] Starting background email processing for ${notificationData.emailAddress}`,
+    );
 
     processNewEmails(
       {
@@ -136,18 +154,28 @@ export async function POST(req: NextRequest) {
         historyId: notificationData.historyId,
         userId,
       },
-      getAccessToken
-    ).then((result) => {
-      console.log(`[Gmail Webhook ${requestId}] Email processing completed for ${notificationData.emailAddress}:`, result);
-    }).catch((error) => {
-      console.error(`[Gmail Webhook ${requestId}] Email processing failed for ${notificationData.emailAddress}:`, {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
+      getAccessToken,
+    )
+      .then((result) => {
+        console.log(
+          `[Gmail Webhook ${requestId}] Email processing completed for ${notificationData.emailAddress}:`,
+          result,
+        );
+      })
+      .catch((error) => {
+        console.error(
+          `[Gmail Webhook ${requestId}] Email processing failed for ${notificationData.emailAddress}:`,
+          {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+          },
+        );
       });
-    });
 
     // Acknowledge receipt immediately to Google
-    console.log(`[Gmail Webhook ${requestId}] Acknowledging notification receipt to Google`);
+    console.log(
+      `[Gmail Webhook ${requestId}] Acknowledging notification receipt to Google`,
+    );
     return NextResponse.json(
       {
         success: true,
@@ -157,13 +185,16 @@ export async function POST(req: NextRequest) {
         userId,
         requestId,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
-    console.error(`[Gmail Webhook ${requestId}] Error processing Gmail webhook:`, {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+    console.error(
+      `[Gmail Webhook ${requestId}] Error processing Gmail webhook:`,
+      {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+    );
 
     // Return 200 even on error to prevent Google from retrying
     // Log the error for debugging but acknowledge receipt
@@ -174,7 +205,7 @@ export async function POST(req: NextRequest) {
         details: error instanceof Error ? error.message : String(error),
         requestId,
       },
-      { status: 200 }
+      { status: 200 },
     );
   }
 }
@@ -188,6 +219,6 @@ export async function GET(req: NextRequest) {
       message: "Gmail webhook endpoint is active",
       status: "ready",
     },
-    { status: 200 }
+    { status: 200 },
   );
 }

@@ -63,7 +63,7 @@ export function createRetrieveBrochureAction(): Action<any> {
             file.name.toLowerCase().includes(brochureName.toLowerCase()) ||
             brochureName
               .toLowerCase()
-              .includes(file.name.toLowerCase().replace(/\.[^/.]+$/, ""))
+              .includes(file.name.toLowerCase().replace(/\.[^/.]+$/, "")),
         );
 
         if (!matchingFile) {

@@ -6,7 +6,7 @@ import { Action } from "@copilotkit/shared";
  * @returns CopilotKit action for sending emails directly
  */
 export function createGmailSendMessageAction(
-  getAccessToken: () => Promise<string>
+  getAccessToken: () => Promise<string>,
 ): Action<any> {
   return {
     name: "gmail_send_message",

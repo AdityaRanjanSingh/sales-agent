@@ -6,7 +6,7 @@ import { Action } from "@copilotkit/shared";
  * @returns CopilotKit action for retrieving a specific email
  */
 export function createGmailGetMessageAction(
-  getAccessToken: () => Promise<string>
+  getAccessToken: () => Promise<string>,
 ): Action<any> {
   return {
     name: "gmail_get_message",

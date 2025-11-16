@@ -8,8 +8,13 @@ import { Action } from "@copilotkit/shared";
 import { generateReplyDraft } from "@/lib/gmail/reply-agent";
 import { storePendingDraft } from "@/lib/state/reply-drafts";
 
+interface PrepareReplyOptions {
+  customInstructions?: string;
+}
+
 export function createPrepareReplyAction(
-  getAccessToken: () => Promise<string>
+  getAccessToken: () => Promise<string>,
+  options?: PrepareReplyOptions,
 ): Action<any> {
   return {
     name: "prepare_email_reply",
@@ -65,6 +70,7 @@ This action does NOT create the draft immediately - it shows a preview first.`,
           userInstructions,
           threadId,
           userTalkingPoints,
+          customInstructions: options?.customInstructions,
         });
 
         console.log("[PrepareReplyAction] Draft generated");
@@ -85,7 +91,10 @@ This action does NOT create the draft immediately - it shows a preview first.`,
           },
         });
 
-        console.log("[PrepareReplyAction] Draft stored with ID:", confirmationId);
+        console.log(
+          "[PrepareReplyAction] Draft stored with ID:",
+          confirmationId,
+        );
 
         // Format the preview for the user
         const preview = formatDraftPreview(replyData, confirmationId);
@@ -112,7 +121,7 @@ function formatDraftPreview(
     draftContent: string;
     threadContext: string;
   },
-  confirmationId: string
+  confirmationId: string,
 ): string {
   let preview = `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   preview += `📧 EMAIL REPLY DRAFT PREVIEW\n`;

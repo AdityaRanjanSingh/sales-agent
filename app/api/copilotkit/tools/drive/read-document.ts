@@ -7,7 +7,7 @@ import { Action } from "@copilotkit/shared";
  * @returns CopilotKit action for reading Drive documents
  */
 export function createDriveReadDocumentAction(
-  getDriveAccessToken: () => Promise<string>
+  getDriveAccessToken: () => Promise<string>,
 ): Action<any> {
   return {
     name: "drive_read_document",

@@ -79,6 +79,7 @@ export interface ReplyAgentInput {
   userInstructions: string; // User's request (e.g., "Reply to john@acme.com about pricing")
   threadId?: string; // Optional: specific thread ID if known
   userTalkingPoints?: string; // Optional: specific points user wants to mention
+  customInstructions?: string; // Optional: user-specific preferences to inject into the system prompt
 }
 
 /**
@@ -97,7 +98,10 @@ export interface ReplyAgentOutput {
 /**
  * Create a reply agent with all necessary tools
  */
-export function createReplyAgent(getAccessToken: () => Promise<string>) {
+export function createReplyAgent(
+  getAccessToken: () => Promise<string>,
+  customInstructions?: string
+) {
   // Create all tools
   const gmailTools = createGmailTools(getAccessToken);
   const customerHistoryTool = createCustomerHistoryTool(getAccessToken);
@@ -112,6 +116,11 @@ export function createReplyAgent(getAccessToken: () => Promise<string>) {
     knowledgeBaseTool,
   ];
 
+  // Allow users to tailor the agent persona with their custom instructions
+  const systemPrompt = customInstructions
+    ? `${REPLY_AGENT_SYSTEM_PROMPT}\n\nUSER CUSTOM INSTRUCTIONS:\n${customInstructions}`
+    : REPLY_AGENT_SYSTEM_PROMPT;
+
   // Create the agent
   const agent = createReactAgent({
     llm: new ChatOpenAI({
@@ -119,7 +128,7 @@ export function createReplyAgent(getAccessToken: () => Promise<string>) {
       temperature: 0.7, // Slightly higher for more natural language
     }),
     tools,
-    messageModifier: new SystemMessage(REPLY_AGENT_SYSTEM_PROMPT),
+    messageModifier: new SystemMessage(systemPrompt),
   });
 
   return agent;
@@ -132,7 +141,7 @@ export async function generateReplyDraft(
   getAccessToken: () => Promise<string>,
   input: ReplyAgentInput
 ): Promise<ReplyAgentOutput> {
-  const agent = createReplyAgent(getAccessToken);
+  const agent = createReplyAgent(getAccessToken, input.customInstructions);
 
   // Construct the task for the agent
   let task = input.userInstructions;
@@ -143,6 +152,10 @@ export async function generateReplyDraft(
 
   if (input.threadId) {
     task += `\n\nThread ID: ${input.threadId}`;
+  }
+
+  if (input.customInstructions) {
+    task += `\n\nPlease honor these user-specific preferences in the reply:\n${input.customInstructions}`;
   }
 
   console.log("[ReplyAgent] Running agent with task:", task);
