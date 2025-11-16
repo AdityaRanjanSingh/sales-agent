@@ -53,7 +53,7 @@ Built with Next.js, LangChain, and OpenAI GPT-4, this application combines moder
 - **AI Orchestration**: LangChain + LangGraph
 - **LLM**: OpenAI GPT-4o-mini
 - **Authentication**: Clerk (Google OAuth)
-- **Database**: NeonDB (PostgreSQL) with Prisma ORM
+- **Database**: PostgreSQL with Prisma ORM (Docker local or NeonDB cloud)
 - **UI**: React 18, TailwindCSS, Radix UI, CopilotKit
 - **Real-time**: Google Cloud Pub/Sub (Gmail webhooks - optional)
 
@@ -63,9 +63,10 @@ Built with Next.js, LangChain, and OpenAI GPT-4, this application combines moder
 
 - Node.js 18 or higher
 - Yarn package manager
+- Docker and Docker Compose (for local database)
 - OpenAI API key
 - Clerk account (for authentication)
-- NeonDB account (for database)
+- NeonDB account (optional - for cloud database)
 - Google Cloud project (for Gmail API and optional webhooks)
 
 ### Installation
@@ -94,8 +95,8 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_..."
 CLERK_SECRET_KEY="sk_..."
 CLERK_SIGN_IN_URL="/sign-in"
 
-# Required: Database
-DATABASE_URL="postgresql://..."
+# Required: Database (use local PostgreSQL by default)
+DATABASE_URL="postgresql://salesagent:salesagent_dev@localhost:5432/sales_agent"
 
 # Required: LangChain
 LANGCHAIN_CALLBACKS_BACKGROUND=false
@@ -105,12 +106,22 @@ GMAIL_WEBHOOK_TOKEN="random-secure-token"
 NEXT_PUBLIC_APP_URL="https://your-app.vercel.app"
 ```
 
-4. Run the development server:
+4. Start the local PostgreSQL database:
+```bash
+yarn db:start
+```
+
+5. Run database migrations:
+```bash
+yarn db:migrate
+```
+
+6. Run the development server:
 ```bash
 yarn dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) and sign in with Google
+7. Open [http://localhost:3000](http://localhost:3000) and sign in with Google
 
 ### Configuration Steps
 
@@ -127,15 +138,48 @@ yarn dev
    - `https://www.googleapis.com/auth/drive.readonly`
 5. Copy your publishable and secret keys to `.env.local`
 
-#### 2. NeonDB Setup (Database)
+#### 2. Database Setup
+
+**Option A: Local PostgreSQL (Recommended for Development)**
+
+The project includes Docker Compose configuration for running PostgreSQL locally.
+
+1. Ensure Docker Desktop is installed and running
+2. Start the database:
+   ```bash
+   yarn db:start
+   ```
+3. Run database migrations:
+   ```bash
+   yarn db:migrate
+   ```
+4. (Optional) Open Prisma Studio to browse the database:
+   ```bash
+   yarn db:studio
+   ```
+
+**Database Management Scripts:**
+- `yarn db:start` - Start PostgreSQL container
+- `yarn db:stop` - Stop PostgreSQL container
+- `yarn db:reset` - Reset database (drops all data and re-runs migrations)
+- `yarn db:migrate` - Run pending migrations
+- `yarn db:generate` - Generate Prisma client
+- `yarn db:studio` - Open Prisma Studio GUI
+- `yarn db:push` - Push schema changes without migrations (dev only)
+
+**Option B: NeonDB (Cloud PostgreSQL)**
+
+For production or if you prefer a cloud database:
 
 1. Create a NeonDB project at [neon.tech](https://neon.tech)
 2. Copy your PostgreSQL connection string
-3. Add `DATABASE_URL` to `.env.local`
+3. Update `DATABASE_URL` in `.env.local`:
+   ```bash
+   DATABASE_URL="postgresql://user:password@endpoint.neon.tech/dbname?sslmode=require"
+   ```
 4. Run database migrations:
    ```bash
-   yarn prisma migrate dev
-   yarn prisma generate
+   yarn db:migrate
    ```
 
 #### 3. Google Cloud Setup (Gmail Webhooks - Optional)
@@ -253,24 +297,25 @@ The sales assistant uses a ReAct (Reasoning + Acting) pattern:
 
 ### Available Scripts
 
+**Application:**
 ```bash
-# Development server
-yarn dev
+yarn dev                # Development server
+yarn build              # Production build
+yarn start              # Start production server
+yarn lint               # Lint code
+yarn format             # Format code
+ANALYZE=true yarn build # Analyze bundle size
+```
 
-# Production build
-yarn build
-
-# Start production server
-yarn start
-
-# Lint code
-yarn lint
-
-# Format code
-yarn format
-
-# Analyze bundle size
-ANALYZE=true yarn build
+**Database:**
+```bash
+yarn db:start           # Start local PostgreSQL (Docker)
+yarn db:stop            # Stop local PostgreSQL
+yarn db:reset           # Reset database (WARNING: deletes all data)
+yarn db:migrate         # Run database migrations
+yarn db:generate        # Generate Prisma client
+yarn db:studio          # Open Prisma Studio GUI
+yarn db:push            # Push schema without migrations
 ```
 
 ### Customizing the Knowledge Base
@@ -330,6 +375,57 @@ Make sure to set all required environment variables in your Vercel project setti
 - **Token Storage**: OAuth tokens are securely stored by Clerk
 - **Environment Variables**: Never commit `.env.local` to version control
 
+## Database Configuration
+
+### Local vs Cloud Database
+
+The project supports both local PostgreSQL (via Docker) and cloud PostgreSQL (NeonDB).
+
+**Local PostgreSQL (Development):**
+- Pros: Faster, works offline, no cost, instant setup
+- Cons: Requires Docker, data only on your machine
+- Best for: Local development and testing
+
+**NeonDB (Production/Cloud):**
+- Pros: Managed service, automatic backups, scalable, accessible anywhere
+- Cons: Requires internet, has cost (free tier available)
+- Best for: Production, staging, team collaboration
+
+### Switching Databases
+
+To switch between local and cloud databases, simply update `DATABASE_URL` in `.env.local`:
+
+**Switch to Local:**
+```bash
+DATABASE_URL="postgresql://salesagent:salesagent_dev@localhost:5432/sales_agent"
+```
+
+**Switch to NeonDB:**
+```bash
+DATABASE_URL="postgresql://user:password@endpoint.neon.tech/dbname?sslmode=require"
+```
+
+After switching, run:
+```bash
+yarn db:generate  # Regenerate Prisma client
+yarn db:migrate   # Apply any pending migrations
+```
+
+### Docker Configuration
+
+The database credentials can be customized in `.env.local`:
+
+```bash
+POSTGRES_USER=your_user
+POSTGRES_PASSWORD=your_password
+POSTGRES_DB=your_database_name
+```
+
+If you change these, update the `DATABASE_URL` accordingly:
+```bash
+DATABASE_URL="postgresql://your_user:your_password@localhost:5432/your_database_name"
+```
+
 ## Troubleshooting
 
 ### Gmail Connection Issues
@@ -343,9 +439,24 @@ Make sure to set all required environment variables in your Vercel project setti
 - Test semantic search with different query terms
 
 ### Database Issues
+
+**Local PostgreSQL:**
+- Ensure Docker Desktop is running
+- Check database container is running: `docker ps`
+- Restart database: `yarn db:stop && yarn db:start`
+- Reset database if corrupted: `yarn db:reset` (WARNING: deletes all data)
+- Check logs: `docker logs sales-agent-db`
+
+**NeonDB (Cloud):**
 - Ensure `DATABASE_URL` is correctly set in `.env.local`
-- Run `yarn prisma migrate dev` to apply migrations
+- Run `yarn db:migrate` to apply migrations
 - Check NeonDB project is active and accessible
+- Verify SSL mode is set correctly in connection string
+
+**General:**
+- Ensure Prisma client is generated: `yarn db:generate`
+- Check migrations have run: `yarn db:migrate`
+- View database in Prisma Studio: `yarn db:studio`
 
 ### Webhook Not Working
 - Verify Pub/Sub topic and subscription are configured
