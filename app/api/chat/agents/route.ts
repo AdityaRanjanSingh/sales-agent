@@ -11,7 +11,9 @@ import {
   SystemMessage,
 } from "@langchain/core/messages";
 import { getGmailAccessTokenFunction } from "@/lib/gmail/credentials";
+import { getDriveAccessTokenFunction } from "@/lib/drive/credentials";
 import { createGmailTools } from "@/lib/gmail/tools";
+import { createDriveTools } from "@/lib/drive/tools";
 import { BrochureRetrieverTool } from "@/lib/tools/brochure";
 
 export const runtime = "nodejs";
@@ -62,6 +64,7 @@ Available tools:
 - gmail_get_message: Get full content of a specific email
 - gmail_get_thread: Get entire email thread for context
 - retrieve_brochure: Fetch brochure files from storage
+- drive_read_document: Read content from Google Drive documents (Docs/Sheets)
 - gmail_create_draft: Create an email draft with attachments
 - gmail_send_message: Send an email directly
 
@@ -98,9 +101,9 @@ export async function POST(req: NextRequest) {
 
     // Get Gmail access token function for the authenticated user
     // This function automatically handles token refresh
-    let getAccessToken;
+    let getGmailAccessToken;
     try {
-      getAccessToken = await getGmailAccessTokenFunction();
+      getGmailAccessToken = await getGmailAccessTokenFunction();
     } catch (error) {
       console.error(`[Agent Route ${requestId}] Failed to create Gmail access token function:`, {
         error: error instanceof Error ? error.message : String(error),
@@ -115,11 +118,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Get Drive access token function for the authenticated user
+    let getDriveAccessToken;
+    try {
+      getDriveAccessToken = await getDriveAccessTokenFunction();
+    } catch (error) {
+      console.error(`[Agent Route ${requestId}] Failed to create Drive access token function:`, {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      // Note: Drive is optional, so we don't return an error
+      // Create a dummy function that will throw if called
+      getDriveAccessToken = async () => {
+        throw new Error("Google Drive not connected. Please connect your Google account to use Drive features.");
+      };
+    }
+
     // Initialize Gmail tools with user's OAuth credentials using the factory function
     // The accessToken function allows automatic token refresh when needed
     let gmailTools;
     try {
-      gmailTools = createGmailTools(getAccessToken);
+      gmailTools = createGmailTools(getGmailAccessToken);
     } catch (error) {
       console.error(`[Agent Route ${requestId}] Failed to create Gmail tools:`, {
         error: error instanceof Error ? error.message : String(error),
@@ -128,12 +147,25 @@ export async function POST(req: NextRequest) {
       throw new Error(`Failed to initialize Gmail tools: ${error instanceof Error ? error.message : String(error)}`);
     }
 
+    // Initialize Drive tools with user's OAuth credentials
+    let driveTools;
+    try {
+      driveTools = createDriveTools(getDriveAccessToken);
+    } catch (error) {
+      console.error(`[Agent Route ${requestId}] Failed to create Drive tools:`, {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      throw new Error(`Failed to initialize Drive tools: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
     const tools = [
       gmailTools.search,
       gmailTools.getMessage,
       gmailTools.getThread,
       gmailTools.createDraft,
       gmailTools.sendMessage,
+      driveTools.readDocument,
       new BrochureRetrieverTool(),
     ];
 

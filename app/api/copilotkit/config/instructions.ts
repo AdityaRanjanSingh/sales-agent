@@ -26,6 +26,7 @@ Available actions:
 - gmail_get_message: Get full content of a specific email
 - gmail_get_thread: Get entire email thread for context
 - retrieve_brochure: Fetch brochure files from storage
+- drive_read_document: Read content from Google Drive documents (Docs/Sheets)
 - gmail_create_draft: Create an email draft with attachments
 - gmail_send_message: Send an email directly
 - prepare_email_reply: Draft a reply to an email with full context (shows preview)
