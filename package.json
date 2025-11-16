@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "format": "prettier --write \"app\""
+    "format": "prettier --write \"app\"",
+    "format:check": "prettier --check \"app\""
   },
   "engines": {
     "node": ">=18"
