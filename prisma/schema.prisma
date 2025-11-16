@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../lib/generated/prisma"
@@ -17,9 +11,81 @@ datasource db {
 model UserPreferences {
   id                 String   @id @default(cuid())
   userId             String   @unique
-  customInstructions String?  @db.Text
+  customInstructions String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
   @@index([userId])
+}
+
+model MCPServer {
+  id        String        @id
+  name      String        @unique
+  type      MCPServerType
+  enabled   Boolean       @default(true)
+  command   String?
+  args      Json?
+  env       Json?
+  url       String?
+  headers   Json?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime
+}
+
+model Thread {
+  id        String   @id @default(cuid())
+  userId    String   @default("legacy")
+  title     String
+  messages  Json     @default("[]")
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, archived])
+}
+
+model checkpoint_blobs {
+  thread_id     String
+  checkpoint_ns String @default("")
+  channel       String
+  version       String
+  type          String
+  blob          Bytes?
+
+  @@id([thread_id, checkpoint_ns, channel, version])
+}
+
+model checkpoint_migrations {
+  v Int @id
+}
+
+model checkpoint_writes {
+  thread_id     String
+  checkpoint_ns String  @default("")
+  checkpoint_id String
+  task_id       String
+  idx           Int
+  channel       String
+  type          String?
+  blob          Bytes
+
+  @@id([thread_id, checkpoint_ns, checkpoint_id, task_id, idx])
+}
+
+model checkpoints {
+  thread_id            String
+  checkpoint_ns        String  @default("")
+  checkpoint_id        String
+  parent_checkpoint_id String?
+  type                 String?
+  checkpoint           Json
+  metadata             Json    @default("{}")
+
+  @@id([thread_id, checkpoint_ns, checkpoint_id])
+}
+
+enum MCPServerType {
+  stdio
+  http
 }
