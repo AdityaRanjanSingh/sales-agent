@@ -22,7 +22,7 @@ interface ActionOptions {
 export function createAllActions(
   getGmailAccessToken: () => Promise<string>,
   getDriveAccessToken: () => Promise<string>,
-  options?: ActionOptions
+  options?: ActionOptions,
 ): Action<any>[] {
   return [
     createGmailSearchAction(getGmailAccessToken),

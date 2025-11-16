@@ -21,10 +21,10 @@ export async function POST(req: NextRequest) {
     const { userId } = await auth();
 
     if (!userId) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // Get Gmail access token function for the authenticated user
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
           error:
             "Gmail not connected. Please connect your Gmail account to use the sales assistant.",
         }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
+        { status: 401, headers: { "Content-Type": "application/json" } },
       );
     }
 
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       // Set to a function that throws when called
       getDriveAccessToken = async () => {
         throw new Error(
-          "Google Drive not connected. Please connect your Google account to use Drive features."
+          "Google Drive not connected. Please connect your Google account to use Drive features.",
         );
       };
     }
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
         error: "Internal server error",
         details: error instanceof Error ? error.message : String(error),
       }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 }

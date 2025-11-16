@@ -6,7 +6,7 @@ import { Action } from "@copilotkit/shared";
  * @returns CopilotKit action for creating email drafts
  */
 export function createGmailCreateDraftAction(
-  getAccessToken: () => Promise<string>
+  getAccessToken: () => Promise<string>,
 ): Action<any> {
   return {
     name: "gmail_create_draft",

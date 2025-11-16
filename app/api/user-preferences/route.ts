@@ -21,7 +21,7 @@ export async function GET() {
     console.error("Error fetching user preferences:", error);
     return NextResponse.json(
       { error: "Failed to fetch preferences" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     if (typeof customInstructions !== "string") {
       return NextResponse.json(
         { error: "Invalid customInstructions format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     console.error("Error saving user preferences:", error);
     return NextResponse.json(
       { error: "Failed to save preferences" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -14,7 +14,7 @@ interface PrepareReplyOptions {
 
 export function createPrepareReplyAction(
   getAccessToken: () => Promise<string>,
-  options?: PrepareReplyOptions
+  options?: PrepareReplyOptions,
 ): Action<any> {
   return {
     name: "prepare_email_reply",
@@ -91,7 +91,10 @@ This action does NOT create the draft immediately - it shows a preview first.`,
           },
         });
 
-        console.log("[PrepareReplyAction] Draft stored with ID:", confirmationId);
+        console.log(
+          "[PrepareReplyAction] Draft stored with ID:",
+          confirmationId,
+        );
 
         // Format the preview for the user
         const preview = formatDraftPreview(replyData, confirmationId);
@@ -118,7 +121,7 @@ function formatDraftPreview(
     draftContent: string;
     threadContext: string;
   },
-  confirmationId: string
+  confirmationId: string,
 ): string {
   let preview = `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   preview += `📧 EMAIL REPLY DRAFT PREVIEW\n`;

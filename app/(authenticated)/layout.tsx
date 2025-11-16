@@ -34,7 +34,9 @@ export default function AuthenticatedLayout({
                       <Bot className="size-4" />
                     </div>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">Sales Assistant</span>
+                      <span className="truncate font-semibold">
+                        Sales Assistant
+                      </span>
                       <span className="truncate text-xs">AI Email Manager</span>
                     </div>
                   </a>
@@ -63,9 +65,7 @@ export default function AuthenticatedLayout({
             </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
-        <SidebarInset>
-          {children}
-        </SidebarInset>
+        <SidebarInset>{children}</SidebarInset>
       </SidebarProvider>
     </CustomInstructionsProvider>
   );

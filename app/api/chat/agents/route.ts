@@ -94,10 +94,7 @@ export async function POST(req: NextRequest) {
     const { userId } = await auth();
 
     if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const customInstructions = await getUserCustomInstructions(userId);
@@ -133,16 +130,20 @@ export async function POST(req: NextRequest) {
     try {
       getGmailAccessToken = await getGmailAccessTokenFunctionForUser(userId);
     } catch (error) {
-      console.error(`[Agent Route ${requestId}] Failed to create Gmail access token function:`, {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
+      console.error(
+        `[Agent Route ${requestId}] Failed to create Gmail access token function:`,
+        {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+      );
       return NextResponse.json(
         {
-          error: "Gmail not connected. Please connect your Gmail account to use the sales assistant.",
-          details: error instanceof Error ? error.message : String(error)
+          error:
+            "Gmail not connected. Please connect your Gmail account to use the sales assistant.",
+          details: error instanceof Error ? error.message : String(error),
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -151,14 +152,19 @@ export async function POST(req: NextRequest) {
     try {
       getDriveAccessToken = await getDriveAccessTokenFunctionForUser(userId);
     } catch (error) {
-      console.error(`[Agent Route ${requestId}] Failed to create Drive access token function:`, {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
+      console.error(
+        `[Agent Route ${requestId}] Failed to create Drive access token function:`,
+        {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+      );
       // Note: Drive is optional, so we don't return an error
       // Create a dummy function that will throw if called
       getDriveAccessToken = async () => {
-        throw new Error("Google Drive not connected. Please connect your Google account to use Drive features.");
+        throw new Error(
+          "Google Drive not connected. Please connect your Google account to use Drive features.",
+        );
       };
     }
 
@@ -168,11 +174,16 @@ export async function POST(req: NextRequest) {
     try {
       gmailTools = createGmailTools(getGmailAccessToken);
     } catch (error) {
-      console.error(`[Agent Route ${requestId}] Failed to create Gmail tools:`, {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
-      throw new Error(`Failed to initialize Gmail tools: ${error instanceof Error ? error.message : String(error)}`);
+      console.error(
+        `[Agent Route ${requestId}] Failed to create Gmail tools:`,
+        {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+      );
+      throw new Error(
+        `Failed to initialize Gmail tools: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
 
     // Initialize Drive tools with user's OAuth credentials
@@ -180,11 +191,16 @@ export async function POST(req: NextRequest) {
     try {
       driveTools = createDriveTools(getDriveAccessToken);
     } catch (error) {
-      console.error(`[Agent Route ${requestId}] Failed to create Drive tools:`, {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
-      throw new Error(`Failed to initialize Drive tools: ${error instanceof Error ? error.message : String(error)}`);
+      console.error(
+        `[Agent Route ${requestId}] Failed to create Drive tools:`,
+        {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+      );
+      throw new Error(
+        `Failed to initialize Drive tools: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
 
     const tools = [
@@ -269,32 +285,38 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch (e: any) {
-    console.error('[Agent Route] Fatal error:', {
+    console.error("[Agent Route] Fatal error:", {
       error: e.message,
       status: e.status ?? 500,
-      stack: e.stack
+      stack: e.stack,
     });
 
     // Provide more detailed error messages to users
     let userMessage = e.message;
-    let errorDetails = '';
+    let errorDetails = "";
 
-    if (e.message?.includes('Gmail')) {
-      userMessage = 'Gmail tool execution failed. Please check your Gmail connection and try again.';
+    if (e.message?.includes("Gmail")) {
+      userMessage =
+        "Gmail tool execution failed. Please check your Gmail connection and try again.";
       errorDetails = e.message;
-    } else if (e.message?.includes('OAuth') || e.message?.includes('token')) {
-      userMessage = 'Authentication error. Please reconnect your Google account.';
+    } else if (e.message?.includes("OAuth") || e.message?.includes("token")) {
+      userMessage =
+        "Authentication error. Please reconnect your Google account.";
       errorDetails = e.message;
-    } else if (e.message?.includes('Tool')) {
-      userMessage = 'A tool execution error occurred. The sales assistant encountered a problem while performing an action.';
+    } else if (e.message?.includes("Tool")) {
+      userMessage =
+        "A tool execution error occurred. The sales assistant encountered a problem while performing an action.";
       errorDetails = e.message;
     }
 
-    return NextResponse.json({
-      error: userMessage,
-      details: errorDetails || e.message
-    }, {
-      status: e.status ?? 500
-    });
+    return NextResponse.json(
+      {
+        error: userMessage,
+        details: errorDetails || e.message,
+      },
+      {
+        status: e.status ?? 500,
+      },
+    );
   }
 }

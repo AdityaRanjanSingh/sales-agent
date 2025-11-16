@@ -8,7 +8,7 @@ import { Action } from "@copilotkit/shared";
 import { getPendingDraft, removePendingDraft } from "@/lib/state/reply-drafts";
 
 export function createConfirmReplyAction(
-  getAccessToken: () => Promise<string>
+  getAccessToken: () => Promise<string>,
 ): Action<any> {
   return {
     name: "confirm_email_reply",
@@ -100,7 +100,7 @@ Please prepare a new draft using the prepare_email_reply action.`;
           // directly. In production, you might need to use the Gmail API directly
           // For now, we'll create a standard draft and note the limitation
           console.log(
-            "[ConfirmReplyAction] Note: Threading headers may not be applied by LangChain tool"
+            "[ConfirmReplyAction] Note: Threading headers may not be applied by LangChain tool",
           );
           console.log("Headers:", headers);
         }
@@ -142,7 +142,7 @@ function formatSuccessMessage(
     subject: string;
     to: string[];
   },
-  gmailResult: string
+  gmailResult: string,
 ): string {
   let message = `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   message += `✅ EMAIL DRAFT CREATED SUCCESSFULLY\n`;
