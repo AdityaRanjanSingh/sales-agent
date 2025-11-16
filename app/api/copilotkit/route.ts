@@ -135,17 +135,41 @@ export async function POST(req: NextRequest) {
           {
             name: "message",
             type: "string",
-            description: "JSON string containing email fields: to, subject, body, cc (optional), bcc (optional)",
+            description: "The email body/content",
             required: true,
           },
+          {
+            name: "to",
+            type: "string[]",
+            description: "Array of recipient email addresses",
+            required: true,
+          },
+          {
+            name: "subject",
+            type: "string",
+            description: "Email subject line",
+            required: true,
+          },
+          {
+            name: "cc",
+            type: "string[]",
+            description: "Array of CC email addresses",
+            required: false,
+          },
+          {
+            name: "bcc",
+            type: "string[]",
+            description: "Array of BCC email addresses",
+            required: false,
+          },
         ],
-        handler: async ({ message }) => {
+        handler: async ({ message, to, subject, cc, bcc }) => {
           const { GmailCreateDraft } = await import("@langchain/community/tools/gmail");
           const token = await getAccessToken();
           const draftTool = new GmailCreateDraft({
             credentials: { accessToken: async () => token }
           });
-          const result = await draftTool.invoke({ message });
+          const result = await draftTool.invoke({ message, to, subject, cc, bcc });
           return result;
         },
       },
@@ -156,17 +180,41 @@ export async function POST(req: NextRequest) {
           {
             name: "message",
             type: "string",
-            description: "JSON string containing email fields: to, subject, body, cc (optional), bcc (optional)",
+            description: "The email body/content",
             required: true,
           },
+          {
+            name: "to",
+            type: "string[]",
+            description: "Array of recipient email addresses",
+            required: true,
+          },
+          {
+            name: "subject",
+            type: "string",
+            description: "Email subject line",
+            required: true,
+          },
+          {
+            name: "cc",
+            type: "string[]",
+            description: "Array of CC email addresses",
+            required: false,
+          },
+          {
+            name: "bcc",
+            type: "string[]",
+            description: "Array of BCC email addresses",
+            required: false,
+          },
         ],
-        handler: async ({ message }) => {
+        handler: async ({ message, to, subject, cc, bcc }) => {
           const { GmailSendMessage } = await import("@langchain/community/tools/gmail");
           const token = await getAccessToken();
           const sendTool = new GmailSendMessage({
             credentials: { accessToken: async () => token }
           });
-          const result = await sendTool.invoke({ message });
+          const result = await sendTool.invoke({ message, to, subject, cc, bcc });
           return result;
         },
       },
