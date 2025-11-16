@@ -5,6 +5,7 @@ import {
 } from "@copilotkit/runtime";
 import { NextRequest } from "next/server";
 import { getGmailAccessTokenFunction } from "@/lib/gmail/credentials";
+import { getDriveAccessTokenFunction } from "@/lib/drive/credentials";
 import { createAllActions } from "./tools";
 import { SALES_ASSISTANT_INSTRUCTIONS } from "./config/instructions";
 
@@ -17,9 +18,9 @@ export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
   try {
     // Get Gmail access token function for the authenticated user
-    let getAccessToken: () => Promise<string>;
+    let getGmailAccessToken: () => Promise<string>;
     try {
-      getAccessToken = await getGmailAccessTokenFunction();
+      getGmailAccessToken = await getGmailAccessTokenFunction();
     } catch (error) {
       console.error("[CopilotKit] Failed to get Gmail access token:", {
         error: error instanceof Error ? error.message : String(error),
@@ -34,8 +35,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Get Drive access token function for the authenticated user
+    let getDriveAccessToken: () => Promise<string>;
+    try {
+      getDriveAccessToken = await getDriveAccessTokenFunction();
+    } catch (error) {
+      console.error("[CopilotKit] Failed to get Drive access token:", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Note: We don't return error here since Drive is optional
+      // Set to a function that throws when called
+      getDriveAccessToken = async () => {
+        throw new Error(
+          "Google Drive not connected. Please connect your Google account to use Drive features."
+        );
+      };
+    }
+
     // Create all CopilotKit actions
-    const actions = createAllActions(getAccessToken);
+    const actions = createAllActions(getGmailAccessToken, getDriveAccessToken);
 
     // Create CopilotKit runtime with OpenAI adapter
     const copilotKit = new CopilotRuntime({

@@ -7,24 +7,28 @@ import { createGmailSendMessageAction } from "./gmail/send-message";
 import { createRetrieveBrochureAction } from "./brochure/retrieve-brochure";
 import { createPrepareReplyAction } from "./gmail/prepare-reply";
 import { createConfirmReplyAction } from "./gmail/confirm-reply";
+import { createDriveReadDocumentAction } from "./drive/read-document";
 
 /**
  * Creates all CopilotKit actions for the sales assistant
- * @param getAccessToken Function that returns the user's Gmail OAuth token
+ * @param getGmailAccessToken Function that returns the user's Gmail OAuth token
+ * @param getDriveAccessToken Function that returns the user's Drive OAuth token
  * @returns Array of CopilotKit actions
  */
 export function createAllActions(
-  getAccessToken: () => Promise<string>
+  getGmailAccessToken: () => Promise<string>,
+  getDriveAccessToken: () => Promise<string>
 ): Action<any>[] {
   return [
-    createGmailSearchAction(getAccessToken),
-    createGmailGetMessageAction(getAccessToken),
-    createGmailGetThreadAction(getAccessToken),
-    createGmailCreateDraftAction(getAccessToken),
-    createGmailSendMessageAction(getAccessToken),
+    createGmailSearchAction(getGmailAccessToken),
+    createGmailGetMessageAction(getGmailAccessToken),
+    createGmailGetThreadAction(getGmailAccessToken),
+    createGmailCreateDraftAction(getGmailAccessToken),
+    createGmailSendMessageAction(getGmailAccessToken),
     createRetrieveBrochureAction(),
-    createPrepareReplyAction(getAccessToken),
-    createConfirmReplyAction(getAccessToken),
+    createPrepareReplyAction(getGmailAccessToken),
+    createConfirmReplyAction(getGmailAccessToken),
+    createDriveReadDocumentAction(getDriveAccessToken),
   ];
 }
 
@@ -38,4 +42,5 @@ export {
   createRetrieveBrochureAction,
   createPrepareReplyAction,
   createConfirmReplyAction,
+  createDriveReadDocumentAction,
 };
