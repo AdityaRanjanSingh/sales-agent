@@ -5,6 +5,8 @@ import { createGmailGetThreadAction } from "./gmail/get-thread";
 import { createGmailCreateDraftAction } from "./gmail/create-draft";
 import { createGmailSendMessageAction } from "./gmail/send-message";
 import { createRetrieveBrochureAction } from "./brochure/retrieve-brochure";
+import { createPrepareReplyAction } from "./gmail/prepare-reply";
+import { createConfirmReplyAction } from "./gmail/confirm-reply";
 
 /**
  * Creates all CopilotKit actions for the sales assistant
@@ -21,6 +23,8 @@ export function createAllActions(
     createGmailCreateDraftAction(getAccessToken),
     createGmailSendMessageAction(getAccessToken),
     createRetrieveBrochureAction(),
+    createPrepareReplyAction(getAccessToken),
+    createConfirmReplyAction(getAccessToken),
   ];
 }
 
@@ -32,4 +36,6 @@ export {
   createGmailCreateDraftAction,
   createGmailSendMessageAction,
   createRetrieveBrochureAction,
+  createPrepareReplyAction,
+  createConfirmReplyAction,
 };
