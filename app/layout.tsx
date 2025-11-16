@@ -4,6 +4,8 @@ import { Public_Sans } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "@/components/ui/sonner";
+import { CopilotKit } from "@copilotkit/react-core";
+import "@copilotkit/react-ui/styles.css";
 
 const publicSans = Public_Sans({ subsets: ["latin"] });
 
@@ -37,8 +39,10 @@ export default function RootLayout({
           <meta name="twitter:image" content="/images/og-image.png" />
         </head>
         <body className={publicSans.className}>
-          <NuqsAdapter>{children}</NuqsAdapter>
-          <Toaster />
+          <CopilotKit runtimeUrl="/api/copilotkit">
+            <NuqsAdapter>{children}</NuqsAdapter>
+            <Toaster />
+          </CopilotKit>
         </body>
       </html>
     </ClerkProvider>
