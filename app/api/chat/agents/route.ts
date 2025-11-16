@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Message as VercelChatMessage, StreamingTextResponse } from "ai";
 
+import { MemorySaver } from "@langchain/langgraph";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { ChatOpenAI } from "@langchain/openai";
 import {
@@ -10,13 +11,18 @@ import {
   HumanMessage,
   SystemMessage,
 } from "@langchain/core/messages";
-import { getGmailAccessTokenFunction } from "@/lib/gmail/credentials";
-import { getDriveAccessTokenFunction } from "@/lib/drive/credentials";
+import { auth } from "@clerk/nextjs/server";
+import { getGmailAccessTokenFunctionForUser } from "@/lib/gmail/credentials";
+import { getDriveAccessTokenFunctionForUser } from "@/lib/drive/credentials";
 import { createGmailTools } from "@/lib/gmail/tools";
 import { createDriveTools } from "@/lib/drive/tools";
 import { BrochureRetrieverTool } from "@/lib/tools/brochure";
+import { getUserCustomInstructions } from "@/lib/preferences";
 
 export const runtime = "nodejs";
+
+// Persist LangGraph state between calls so the agent can maintain context
+const agentCheckpointer = new MemorySaver();
 
 const convertVercelMessageToLangChainMessage = (message: VercelChatMessage) => {
   if (message.role === "user") {
@@ -85,8 +91,30 @@ export async function POST(req: NextRequest) {
   const requestId = Math.random().toString(36).substring(7);
 
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const customInstructions = await getUserCustomInstructions(userId);
+
     const body = await req.json();
     const returnIntermediateSteps = body.show_intermediate_steps;
+    const firstMessageId: string | undefined = body?.messages?.[0]?.id;
+    const threadId =
+      body?.thread_id ||
+      body?.threadId ||
+      body?.id ||
+      (firstMessageId ? `session-${firstMessageId}` : requestId);
+    const runConfig = {
+      configurable: {
+        thread_id: threadId,
+      },
+    };
 
     /**
      * We represent intermediate steps as system messages for display purposes,
@@ -101,9 +129,9 @@ export async function POST(req: NextRequest) {
 
     // Get Gmail access token function for the authenticated user
     // This function automatically handles token refresh
-    let getGmailAccessToken;
+    let getGmailAccessToken: () => Promise<string>;
     try {
-      getGmailAccessToken = await getGmailAccessTokenFunction();
+      getGmailAccessToken = await getGmailAccessTokenFunctionForUser(userId);
     } catch (error) {
       console.error(`[Agent Route ${requestId}] Failed to create Gmail access token function:`, {
         error: error instanceof Error ? error.message : String(error),
@@ -119,9 +147,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Get Drive access token function for the authenticated user
-    let getDriveAccessToken;
+    let getDriveAccessToken: () => Promise<string>;
     try {
-      getDriveAccessToken = await getDriveAccessTokenFunction();
+      getDriveAccessToken = await getDriveAccessTokenFunctionForUser(userId);
     } catch (error) {
       console.error(`[Agent Route ${requestId}] Failed to create Drive access token function:`, {
         error: error instanceof Error ? error.message : String(error),
@@ -177,13 +205,18 @@ export async function POST(req: NextRequest) {
     /**
      * Use a prebuilt LangGraph ReAct agent with Gmail tools.
      */
+    const agentSystemPrompt = customInstructions
+      ? `${AGENT_SYSTEM_TEMPLATE}\n\nUSER CUSTOM INSTRUCTIONS:\n${customInstructions}`
+      : AGENT_SYSTEM_TEMPLATE;
+
     const agent = createReactAgent({
       llm: chat,
       tools,
       /**
        * Modify the stock prompt to be a sales assistant
        */
-      messageModifier: new SystemMessage(AGENT_SYSTEM_TEMPLATE),
+      messageModifier: new SystemMessage(agentSystemPrompt),
+      checkpointer: agentCheckpointer,
     });
 
     if (!returnIntermediateSteps) {
@@ -201,7 +234,7 @@ export async function POST(req: NextRequest) {
        */
       const eventStream = agent.streamEvents(
         { messages },
-        { version: "v2" },
+        { ...runConfig, version: "v2" },
       );
 
       const textEncoder = new TextEncoder();
@@ -226,7 +259,7 @@ export async function POST(req: NextRequest) {
        * they are generated as JSON objects, so streaming and displaying them with
        * the AI SDK is more complicated.
        */
-      const result = await agent.invoke({ messages });
+      const result = await agent.invoke({ messages }, runConfig);
 
       return NextResponse.json(
         {
