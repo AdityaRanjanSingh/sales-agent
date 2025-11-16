@@ -5,29 +5,32 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { SidebarMenuButton } from "@/components/ui/sidebar";
 import { toast } from "sonner";
 import { Settings } from "lucide-react";
+import { useCustomInstructions } from "@/contexts/CustomInstructionsContext";
 
-interface SettingsDrawerProps {
-  initialInstructions?: string;
-  onInstructionsChange?: (instructions: string) => void;
-}
-
-export function SettingsDrawer({
-  initialInstructions = "",
-  onInstructionsChange,
-}: SettingsDrawerProps) {
-  const [customInstructions, setCustomInstructions] =
-    useState(initialInstructions);
+export function SettingsDrawer() {
+  const { customInstructions, setCustomInstructions } = useCustomInstructions();
+  const [localInstructions, setLocalInstructions] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (open) {
+      // When opening, sync local state with context
+      setLocalInstructions(customInstructions);
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -37,7 +40,7 @@ export function SettingsDrawer({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ customInstructions }),
+        body: JSON.stringify({ customInstructions: localInstructions }),
       });
 
       if (!response.ok) {
@@ -45,8 +48,9 @@ export function SettingsDrawer({
       }
 
       const data = await response.json();
+      const savedInstructions = data.customInstructions || "";
+      setCustomInstructions(savedInstructions);
       toast.success("Settings saved successfully!");
-      onInstructionsChange?.(data.customInstructions || "");
       setIsOpen(false);
     } catch (error) {
       console.error("Error saving preferences:", error);
@@ -57,28 +61,31 @@ export function SettingsDrawer({
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Settings className="h-5 w-5" />
-          <span className="sr-only">Settings</span>
-        </Button>
-      </SheetTrigger>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>Agent Settings</SheetTitle>
-          <SheetDescription>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <SidebarMenuButton size="lg" tooltip="Agent Settings">
+          <Settings className="size-4" />
+          <div className="grid flex-1 text-left text-sm leading-tight">
+            <span className="truncate font-semibold">Agent Settings</span>
+            <span className="truncate text-xs">Customize behavior</span>
+          </div>
+        </SidebarMenuButton>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[525px]">
+        <DialogHeader>
+          <DialogTitle>Agent Settings</DialogTitle>
+          <DialogDescription>
             Customize how the sales assistant behaves in conversations.
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="custom-instructions">Custom Instructions</Label>
             <Textarea
               id="custom-instructions"
               placeholder="E.g., Always be concise, use a formal tone, prioritize brevity..."
-              value={customInstructions}
-              onChange={(e) => setCustomInstructions(e.target.value)}
+              value={localInstructions}
+              onChange={(e) => setLocalInstructions(e.target.value)}
               className="min-h-[200px]"
             />
             <p className="text-sm text-muted-foreground">
@@ -88,11 +95,11 @@ export function SettingsDrawer({
             </p>
           </div>
         </div>
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button
             variant="outline"
             onClick={() => {
-              setCustomInstructions(initialInstructions);
+              setLocalInstructions(customInstructions);
               setIsOpen(false);
             }}
           >
@@ -101,8 +108,8 @@ export function SettingsDrawer({
           <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? "Saving..." : "Save Changes"}
           </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
