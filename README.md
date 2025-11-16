@@ -1,16 +1,16 @@
 # AI Sales Assistant
 
-An intelligent email automation system that monitors Gmail for customer brochure requests and automatically drafts professional responses with the appropriate marketing materials attached.
+An intelligent email management system that helps sales teams handle customer communications efficiently. The AI assistant monitors Gmail, provides intelligent context from knowledge bases and documents, and helps draft professional responses to customer inquiries.
 
 ## Overview
 
-This AI-powered sales assistant streamlines the process of handling customer inquiries for marketing materials by:
+This AI-powered sales assistant streamlines customer communication workflows by:
 
 - **Monitoring Gmail** - Real-time webhook notifications for incoming customer emails
-- **Understanding Requests** - AI analyzes email content to identify brochure/catalog needs
-- **Retrieving Materials** - Automatically finds and attaches relevant brochures from storage
-- **Drafting Responses** - Creates professional email drafts ready for review and sending
-- **Manual Control** - Provides a chat interface for on-demand email processing
+- **Understanding Requests** - AI analyzes email content to identify customer needs and questions
+- **Providing Context** - Queries company knowledge base and reads Google Drive documents for accurate information
+- **Drafting Responses** - Creates professional, personalized email drafts with relevant context
+- **Interactive Chat** - Provides a conversational interface for on-demand email management
 
 Built with Next.js, LangChain, and OpenAI GPT-4, this application combines modern AI orchestration with real-time email monitoring to create a practical business automation tool for sales teams.
 
@@ -18,30 +18,34 @@ Built with Next.js, LangChain, and OpenAI GPT-4, this application combines moder
 
 ### Automated Email Processing
 - **Gmail Webhook Integration** - Receives push notifications when new emails arrive
-- **Background Processing** - Automatically processes brochure requests without manual intervention
-- **Smart Draft Creation** - Generates professional email responses with appropriate brochure attachments
+- **Background Processing** - Automatically processes customer inquiries without manual intervention
+- **Smart Draft Creation** - Generates professional email responses with contextual information
+- **Custom Instructions** - User-configurable preferences for response style and behavior
 
 ### AI Sales Agent
 - **Natural Language Understanding** - Comprehends customer requests in plain English
-- **Multi-step Workflow** - Searches emails, reads content, retrieves brochures, and drafts responses
+- **Multi-step Workflow** - Searches emails, reads content, gathers context, and drafts responses
+- **Knowledge Base Integration** - Queries company information (pricing, policies, products, support)
 - **ReAct Pattern** - Uses LangGraph's reasoning and acting approach for intelligent decision-making
 - **Streaming Responses** - Real-time feedback on agent actions and thinking
 
 ### Interactive Chat Interface
 - **CopilotKit UI** - Modern conversational interface for manual operation
-- **Tool Calling** - Execute Gmail operations and brochure retrieval through natural language
+- **Tool Calling** - Execute Gmail and Drive operations through natural language
 - **Action-based Architecture** - Clean separation of concerns with defined actions
+- **Two-Step Confirmation** - Review and approve email drafts before creation
 
-### Gmail Integration
+### Gmail & Drive Integration
 - **OAuth Authentication** - Secure Google sign-in via Clerk
 - **Full Email Access** - Search, read, send, and create drafts
 - **Thread Management** - Access entire email conversations for context
+- **Google Drive** - Read company documents (Docs/Sheets) for up-to-date information
 - **Token Management** - Automatic OAuth token refresh
 
-### Brochure Management
-- **Supabase Storage** - Centralized storage for marketing materials
-- **Smart Matching** - Case-insensitive search for requested brochures
-- **Public URLs** - Generate shareable links for email attachments
+### Knowledge Base
+- **Built-in Knowledge** - Company information stored in the application
+- **Semantic Search** - Find relevant information based on customer questions
+- **Extensible** - Easy to add custom company data and policies
 
 ## Tech Stack
 
@@ -49,9 +53,9 @@ Built with Next.js, LangChain, and OpenAI GPT-4, this application combines moder
 - **AI Orchestration**: LangChain + LangGraph
 - **LLM**: OpenAI GPT-4o-mini
 - **Authentication**: Clerk (Google OAuth)
-- **Storage**: Supabase
+- **Database**: NeonDB (PostgreSQL) with Prisma ORM
 - **UI**: React 18, TailwindCSS, Radix UI, CopilotKit
-- **Real-time**: Google Cloud Pub/Sub (Gmail webhooks)
+- **Real-time**: Google Cloud Pub/Sub (Gmail webhooks - optional)
 
 ## Getting Started
 
@@ -61,8 +65,8 @@ Built with Next.js, LangChain, and OpenAI GPT-4, this application combines moder
 - Yarn package manager
 - OpenAI API key
 - Clerk account (for authentication)
-- Supabase account (for brochure storage)
-- Google Cloud project (for Gmail API and webhooks)
+- NeonDB account (for database)
+- Google Cloud project (for Gmail API and optional webhooks)
 
 ### Installation
 
@@ -90,9 +94,8 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_..."
 CLERK_SECRET_KEY="sk_..."
 CLERK_SIGN_IN_URL="/sign-in"
 
-# Required: Supabase Storage
-SUPABASE_URL="https://xxx.supabase.co"
-SUPABASE_PRIVATE_KEY="eyJ..."
+# Required: Database
+DATABASE_URL="postgresql://..."
 
 # Required: LangChain
 LANGCHAIN_CALLBACKS_BACKGROUND=false
@@ -121,15 +124,19 @@ yarn dev
    - `https://www.googleapis.com/auth/gmail.send`
    - `https://www.googleapis.com/auth/gmail.compose`
    - `https://www.googleapis.com/auth/gmail.modify`
+   - `https://www.googleapis.com/auth/drive.readonly`
 5. Copy your publishable and secret keys to `.env.local`
 
-#### 2. Supabase Setup (Brochure Storage)
+#### 2. NeonDB Setup (Database)
 
-1. Create a Supabase project at [supabase.com](https://supabase.com)
-2. Create a storage bucket named "brochures"
-3. Set bucket policy to public or configure access as needed
-4. Upload your marketing materials/brochures to the bucket
-5. Copy your Supabase URL and service role key to `.env.local`
+1. Create a NeonDB project at [neon.tech](https://neon.tech)
+2. Copy your PostgreSQL connection string
+3. Add `DATABASE_URL` to `.env.local`
+4. Run database migrations:
+   ```bash
+   yarn prisma migrate dev
+   yarn prisma generate
+   ```
 
 #### 3. Google Cloud Setup (Gmail Webhooks - Optional)
 
@@ -152,19 +159,20 @@ For automated email monitoring, set up Gmail push notifications:
 3. Use the chat interface to interact with the sales assistant
 
 **Example commands:**
-- "Search for unread emails about brochures"
+- "Search for unread emails from customers"
 - "Read the latest email from customer@example.com"
-- "Find the product catalog brochure"
-- "Create a draft response to the latest brochure request"
+- "Reply to john@acme.com about pricing"
+- "Check for emails that need responses"
+- "Read the pricing document from Google Drive"
 
 ### Automated Operation (Webhooks)
 
 Once Gmail webhooks are configured, the system will automatically:
 
 1. Receive notification when a new email arrives
-2. Analyze the email content for brochure requests
-3. Retrieve the appropriate marketing materials
-4. Draft a professional response with attachments
+2. Analyze the email content to understand customer needs
+3. Query knowledge base and Google Drive for relevant information
+4. Draft a professional response with contextual information
 5. Save the draft to Gmail for review
 
 The draft will be ready in your Gmail account for you to review and send.
@@ -189,12 +197,21 @@ The draft will be ready in your Gmail account for you to review and send.
     credentials.ts          # OAuth token management
     tools.ts                # Gmail tool factory
     process-emails.ts       # Background email processing
+  /drive
+    credentials.ts          # Drive OAuth token management
+    tools.ts                # Google Drive tool factory
   /tools
-    brochure.ts            # Brochure retrieval tool
+    knowledge-base.ts       # Company knowledge base tool
+  prisma.ts                 # Database client singleton
+  preferences.ts            # User preferences utilities
 
 /components
   GmailConnectionStatus.tsx # Gmail connection status indicator
+  SettingsDrawer.tsx        # Custom instructions settings
   ui/                       # Radix UI components (dialog, popover, etc.)
+
+/prisma
+  schema.prisma             # Database schema
 ```
 
 ## How It Works
@@ -204,7 +221,7 @@ The draft will be ready in your Gmail account for you to review and send.
 ```
 User Email → Gmail → Pub/Sub Webhook → /api/webhooks/gmail
   → Process Email Function → LangGraph Agent
-  → Tools (Gmail Search, Read, Brochure Retrieval)
+  → Tools (Gmail, Drive, Knowledge Base)
   → Create Draft Response → Gmail Drafts
 ```
 
@@ -212,12 +229,12 @@ User Email → Gmail → Pub/Sub Webhook → /api/webhooks/gmail
 
 The sales assistant uses a ReAct (Reasoning + Acting) pattern:
 
-1. **Receive Task** - User asks to process brochure requests or webhook triggers
+1. **Receive Task** - User asks to handle emails or webhook triggers
 2. **Search Emails** - Uses Gmail search to find relevant emails
 3. **Read Content** - Retrieves full email content and metadata
-4. **Understand Request** - AI analyzes what brochures are needed
-5. **Retrieve Brochures** - Searches Supabase storage for matching files
-6. **Draft Response** - Creates professional email with attachments
+4. **Understand Request** - AI analyzes customer needs and questions
+5. **Gather Context** - Queries knowledge base and reads Google Drive documents
+6. **Draft Response** - Creates professional email with accurate information
 7. **Return Result** - Draft saved to Gmail for review
 
 ### Tools Available to the Agent
@@ -227,7 +244,10 @@ The sales assistant uses a ReAct (Reasoning + Acting) pattern:
 - **gmail_get_thread** - Get entire email conversation
 - **gmail_create_draft** - Create draft email with attachments
 - **gmail_send_message** - Send email directly (use with caution)
-- **retrieve_brochure** - Search and retrieve brochures from Supabase
+- **prepare_email_reply** - Draft contextual replies with customer history
+- **confirm_email_reply** - Confirm and create draft after review
+- **drive_read_document** - Read Google Docs and Sheets
+- **knowledge_base** - Query company information (pricing, policies, etc.)
 
 ## Development
 
@@ -253,22 +273,32 @@ yarn format
 ANALYZE=true yarn build
 ```
 
-### Adding Brochures
+### Customizing the Knowledge Base
 
-To add new marketing materials:
+To add company-specific information:
 
-1. Log into your Supabase project
-2. Navigate to Storage → brochures bucket
-3. Upload PDF, image, or document files
-4. The sales assistant will automatically find them by filename
+1. Edit `lib/tools/knowledge-base.ts`
+2. Add new entries to the `knowledgeArticles` array
+3. Include category, question, answer, and keywords
+4. The agent will automatically search and use this information
 
 ### Customizing the Agent
 
 The agent behavior can be customized in:
 
-- **System Prompt**: `/app/api/copilotkit/route.ts` - Modify the instructions
-- **Tools**: `/lib/gmail/tools.ts` and `/lib/tools/brochure.ts` - Add or modify tools
+- **System Prompt**: `/app/api/copilotkit/config/instructions.ts` - Modify the instructions
+- **Tools**: Create new tools in `/lib/tools/` following the LangChain pattern
 - **Model**: Change from GPT-4o-mini to other OpenAI models in the agent config
+- **User Preferences**: Users can set custom instructions via the settings drawer
+
+### Extending Functionality
+
+Add new capabilities by:
+
+1. **Creating Tools**: Build LangChain tools in `/lib/tools/`
+2. **Adding Actions**: Create CopilotKit actions in `/app/api/copilotkit/tools/`
+3. **Integrating APIs**: Follow the OAuth pattern in `/lib/gmail/` and `/lib/drive/`
+4. **Updating Knowledge**: Extend the knowledge base with company data
 
 ## Deployment
 
@@ -289,7 +319,7 @@ For Gmail webhooks to work in production:
 Make sure to set all required environment variables in your Vercel project settings:
 - OpenAI API key
 - Clerk keys
-- Supabase URL and key
+- NeonDB database URL
 - Gmail webhook token (if using webhooks)
 
 ## Security Considerations
@@ -303,14 +333,19 @@ Make sure to set all required environment variables in your Vercel project setti
 ## Troubleshooting
 
 ### Gmail Connection Issues
-- Verify OAuth scopes are configured correctly in Clerk
-- Check that user has granted Gmail permissions
+- Verify OAuth scopes are configured correctly in Clerk (Gmail + Drive)
+- Check that user has granted Gmail and Drive permissions
 - Ensure OAuth tokens haven't expired (Clerk handles refresh automatically)
 
-### Brochure Not Found
-- Check Supabase bucket name is exactly "brochures"
-- Verify files are uploaded and accessible
-- Test with case-insensitive filename search
+### Knowledge Base Not Working
+- Check `lib/tools/knowledge-base.ts` has valid entries
+- Verify keywords match customer queries
+- Test semantic search with different query terms
+
+### Database Issues
+- Ensure `DATABASE_URL` is correctly set in `.env.local`
+- Run `yarn prisma migrate dev` to apply migrations
+- Check NeonDB project is active and accessible
 
 ### Webhook Not Working
 - Verify Pub/Sub topic and subscription are configured

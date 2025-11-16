@@ -11,13 +11,13 @@ export function createGmailSearchAction(
   return {
     name: "gmail_search",
     description:
-      "Search for emails in Gmail. Returns matching email IDs and metadata. Use query parameter to filter (e.g., 'is:unread brochure' for unread emails about brochures).",
+      "Search for emails in Gmail. Returns matching email IDs and metadata. Use query parameter to filter (e.g., 'is:unread', 'from:customer@example.com').",
     parameters: [
       {
         name: "query",
         type: "string",
         description:
-          "Gmail search query string (e.g., 'is:unread', 'from:user@example.com', 'subject:brochure')",
+          "Gmail search query string (e.g., 'is:unread', 'from:user@example.com', 'subject:inquiry')",
         required: true,
       },
     ],

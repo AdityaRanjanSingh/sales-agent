@@ -76,7 +76,7 @@ function initializeKnowledgeBase(): KnowledgeEntry[] {
         category: "Products",
         question: "What products do we offer?",
         answer:
-          "Our Product Line:\n- Software Platform: Cloud-based business management solution\n- Mobile Apps: iOS and Android applications included\n- API Access: RESTful API for integrations (Professional+ plans)\n- Brochures: Detailed product information available\n- Training: Online courses and documentation included\n- Support: Email support (all plans), priority support (Professional+), dedicated account manager (Enterprise)",
+          "Our Product Line:\n- Software Platform: Cloud-based business management solution\n- Mobile Apps: iOS and Android applications included\n- API Access: RESTful API for integrations (Professional+ plans)\n- Documentation: Detailed product information and user guides available\n- Training: Online courses and documentation included\n- Support: Email support (all plans), priority support (Professional+), dedicated account manager (Enterprise)",
         keywords: [
           "product",
           "features",
