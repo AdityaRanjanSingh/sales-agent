@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Next.js AI sales assistant application that automates email brochure requests. It integrates Gmail via OAuth (through Clerk), LangChain/LangGraph for agentic workflows, and CopilotKit for the chat interface. The system monitors incoming emails for brochure requests, retrieves brochures from Supabase storage, and drafts professional responses with attachments.
+This is a Next.js AI sales assistant application that helps manage customer email communications. It integrates Gmail via OAuth (through Clerk), LangChain/LangGraph for agentic workflows, and CopilotKit for the chat interface. The system monitors incoming emails, provides intelligent context from a knowledge base and Google Drive documents, and helps draft professional responses.
 
 **Tech Stack:**
 - Next.js 15 (App Router)
@@ -13,9 +13,9 @@ This is a Next.js AI sales assistant application that automates email brochure r
 - CopilotKit for chat UI
 - Clerk for authentication & OAuth
 - Google Gmail API via OAuth
+- Google Drive API via OAuth
 - NeonDB (PostgreSQL) for user preferences
 - Prisma ORM
-- Supabase for storage (brochures bucket)
 - OpenAI GPT-4o-mini for LLM
 - Tailwind CSS + shadcn/ui components
 - Yarn (v3.5.1)
@@ -84,7 +84,7 @@ Both agents have identical tools and system prompts defined in their respective 
 
 **Email Processing** (`lib/gmail/process-emails.ts`):
 - `processNewEmails()`: Invoked by webhook when new emails arrive
-- Creates an agent that searches for brochure requests, retrieves brochures, and drafts responses
+- Creates an agent that searches for customer inquiries and drafts professional responses
 - `getUserIdFromEmail()`: Maps Gmail addresses to Clerk user IDs
 
 **Webhook** (`app/api/webhooks/gmail/route.ts`):
@@ -94,12 +94,16 @@ Both agents have identical tools and system prompts defined in their respective 
 - Always returns 200 to prevent Google retries
 - Comprehensive logging with request IDs for debugging
 
-### Brochure Retrieval
-`lib/tools/brochure.ts` - `BrochureRetrieverTool`:
-- Searches Supabase `brochures` bucket for matching files
-- Case-insensitive partial matching on file names
-- Returns public URLs and metadata for email attachments
-- Lists available brochures if requested file not found
+### Knowledge Base & Drive Integration
+**Knowledge Base** (`lib/tools/knowledge-base.ts`):
+- `KnowledgeBaseTool`: Provides company information (pricing, policies, products, support)
+- Semantic search across knowledge base articles
+- Returns relevant context for drafting email responses
+
+**Google Drive** (`lib/drive/tools.ts`):
+- `createDriveTools(getAccessToken)`: Factory function for Drive tools
+- Read Google Docs and Sheets for additional context
+- Useful for accessing up-to-date product info, pricing sheets, etc.
 
 ### User Preferences & Custom Instructions
 **Database** (`prisma/schema.prisma`):
@@ -142,9 +146,7 @@ Required in `.env.local`:
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Clerk public key
 - `CLERK_SECRET_KEY`: Clerk secret key
 - `DATABASE_URL`: NeonDB PostgreSQL connection string
-- `SUPABASE_URL`: Supabase project URL
-- `SUPABASE_PRIVATE_KEY`: Supabase service role key
-- `GMAIL_WEBHOOK_TOKEN`: Secret token for webhook security
+- `GMAIL_WEBHOOK_TOKEN`: Secret token for webhook security (optional)
 - `LANGCHAIN_CALLBACKS_BACKGROUND=false`: Required for Edge functions
 
 See `.env.example` for complete list.
@@ -168,9 +170,9 @@ const gmailTools = createGmailTools(getAccessToken);
 The sales assistant prompt is duplicated in:
 - `lib/gmail/process-emails.ts` (webhook processing)
 - `app/api/chat/agents/route.ts` (chat agent)
-- `app/api/copilotkit/route.ts` (CopilotKit)
+- `app/api/copilotkit/config/instructions.ts` (CopilotKit)
 
-If updating the prompt, update all three locations.
+If updating the prompt, update all three locations for consistency.
 
 ### Prisma & Database
 Database client is initialized in `lib/prisma.ts` as a singleton:
@@ -206,10 +208,19 @@ After schema changes, run:
 - Simple chat route (`app/api/chat/route.ts`) is a basic example, not used in production
 - Path alias `@/*` maps to project root
 - Gmail push notifications require Google Cloud Pub/Sub setup (see webhook comments)
-- Brochures must be manually uploaded to Supabase `brochures` bucket
-- Clerk must be configured with Google OAuth provider and appropriate scopes (Gmail API access)
+- Clerk must be configured with Google OAuth provider and appropriate scopes (Gmail & Drive API access)
 - **Database Setup**: Before running the app, you must:
   1. Create a NeonDB PostgreSQL database
   2. Add `DATABASE_URL` to `.env.local`
   3. Run `yarn prisma migrate dev` to create tables
   4. Run `yarn prisma generate` to generate the Prisma client
+
+## Extending the System
+
+This sales assistant is designed to be extensible. You can:
+
+1. **Add Custom Tools**: Create new tools in `lib/tools/` following the LangChain tool pattern
+2. **Extend Knowledge Base**: Update `lib/tools/knowledge-base.ts` with company-specific information
+3. **Add New Actions**: Create CopilotKit actions in `app/api/copilotkit/tools/`
+4. **Customize Prompts**: Modify system prompts in the three agent files to match your use case
+5. **Integrate Additional APIs**: Add new integrations (Slack, Calendar, etc.) using the OAuth pattern

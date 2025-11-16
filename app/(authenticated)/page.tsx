@@ -19,7 +19,7 @@ export default function AgentsPage() {
       labels={{
         title: "Sales Assistant",
         initial:
-          "Hi! I'm your AI sales assistant. I can help you manage customer emails and brochure requests. Try asking me to 'check for brochure requests' or 'search for unread emails'.",
+          "Hi! I'm your AI sales assistant. I can help you manage customer emails and draft professional responses. Try asking me to 'check for unread emails' or 'reply to a customer inquiry'.",
       }}
     />
   );

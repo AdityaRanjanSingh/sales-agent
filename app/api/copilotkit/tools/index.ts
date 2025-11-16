@@ -4,7 +4,6 @@ import { createGmailGetMessageAction } from "./gmail/get-message";
 import { createGmailGetThreadAction } from "./gmail/get-thread";
 import { createGmailCreateDraftAction } from "./gmail/create-draft";
 import { createGmailSendMessageAction } from "./gmail/send-message";
-import { createRetrieveBrochureAction } from "./brochure/retrieve-brochure";
 import { createPrepareReplyAction } from "./gmail/prepare-reply";
 import { createConfirmReplyAction } from "./gmail/confirm-reply";
 import { createDriveReadDocumentAction } from "./drive/read-document";
@@ -30,7 +29,6 @@ export function createAllActions(
     createGmailGetThreadAction(getGmailAccessToken),
     createGmailCreateDraftAction(getGmailAccessToken),
     createGmailSendMessageAction(getGmailAccessToken),
-    createRetrieveBrochureAction(),
     createPrepareReplyAction(getGmailAccessToken, options),
     createConfirmReplyAction(getGmailAccessToken),
     createDriveReadDocumentAction(getDriveAccessToken),
@@ -44,7 +42,6 @@ export {
   createGmailGetThreadAction,
   createGmailCreateDraftAction,
   createGmailSendMessageAction,
-  createRetrieveBrochureAction,
   createPrepareReplyAction,
   createConfirmReplyAction,
   createDriveReadDocumentAction,
